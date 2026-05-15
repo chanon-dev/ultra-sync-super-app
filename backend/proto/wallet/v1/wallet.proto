@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package wallet.v1;
+
+option go_package = "github.com/chanon/ultra-sync/proto/gen/go/wallet/v1;walletv1";
+
+import "google/protobuf/timestamp.proto";
+
+service WalletService {
+  rpc GetBalance       (GetBalanceRequest)       returns (GetBalanceResponse);
+  rpc TopUp            (TopUpRequest)            returns (TopUpResponse);
+  rpc Pay              (PayRequest)              returns (PayResponse);
+  rpc ListTransactions (ListTransactionsRequest) returns (ListTransactionsResponse);
+}
+
+message GetBalanceRequest {
+  string user_id = 1;
+}
+
+message GetBalanceResponse {
+  string balance  = 1; // DECIMAL as string
+  string currency = 2;
+}
+
+message TopUpRequest {
+  string user_id         = 1;
+  string amount          = 2; // DECIMAL as string
+  string idempotency_key = 3;
+}
+
+message TopUpResponse {
+  string transaction_id = 1;
+  string balance_after  = 2;
+}
+
+message PayRequest {
+  string from_user_id    = 1;
+  string shipment_id     = 2;
+  string amount          = 3;
+  string idempotency_key = 4;
+}
+
+message PayResponse {
+  string transaction_id = 1;
+  string balance_after  = 2;
+}
+
+message TransactionRecord {
+  string                    id            = 1;
+  string                    type          = 2; // topup | payment | payout
+  string                    amount        = 3;
+  string                    balance_after = 4;
+  string                    reference_id  = 5;
+  google.protobuf.Timestamp created_at    = 6;
+}
+
+message ListTransactionsRequest {
+  string user_id = 1;
+  string type    = 2;
+  string after   = 3; // cursor
+  int32  limit   = 4;
+}
+
+message ListTransactionsResponse {
+  repeated TransactionRecord transactions = 1;
+  string                     next_cursor  = 2;
+  bool                       has_more     = 3;
+}

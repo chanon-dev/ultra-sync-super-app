@@ -1,0 +1,16 @@
+version: v2
+plugins:
+  # Go + gRPC stubs
+  - remote: buf.build/protocolbuffers/go
+    out: gen/go
+    opt:
+      - paths=source_relative
+  - remote: buf.build/grpc/go
+    out: gen/go
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+
+  # Dart stubs (Flutter)
+  - remote: buf.build/grpc/dart
+    out: gen/dart

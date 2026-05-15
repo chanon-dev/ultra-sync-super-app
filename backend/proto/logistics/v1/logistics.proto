@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package logistics.v1;
+
+option go_package = "github.com/chanon/ultra-sync/proto/gen/go/logistics/v1;logisticsv1";
+
+import "google/protobuf/timestamp.proto";
+
+service LogisticsService {
+  rpc CreateShipment (CreateShipmentRequest) returns (CreateShipmentResponse);
+  rpc GetShipment    (GetShipmentRequest)    returns (GetShipmentResponse);
+  rpc UpdateStatus   (UpdateStatusRequest)   returns (UpdateStatusResponse);
+  rpc UpdateLocation (UpdateLocationRequest) returns (UpdateLocationResponse);
+  rpc AssignDriver   (AssignDriverRequest)   returns (AssignDriverResponse);
+  rpc ListShipments  (ListShipmentsRequest)  returns (ListShipmentsResponse);
+}
+
+message GeoPoint {
+  double latitude  = 1;
+  double longitude = 2;
+}
+
+message ShipmentSummary {
+  string                    id          = 1;
+  string                    order_no    = 2;
+  string                    sender_id   = 3;
+  string                    driver_id   = 4;
+  string                    status      = 5;
+  GeoPoint                  pickup_geo  = 6;
+  GeoPoint                  dropoff_geo = 7;
+  string                    price       = 8; // DECIMAL as string to avoid precision loss
+  google.protobuf.Timestamp created_at  = 9;
+}
+
+message CreateShipmentRequest {
+  string   sender_id   = 1;
+  GeoPoint pickup_geo  = 2;
+  GeoPoint dropoff_geo = 3;
+}
+
+message CreateShipmentResponse {
+  string shipment_id = 1;
+  string order_no    = 2;
+  string status      = 3;
+}
+
+message GetShipmentRequest {
+  string shipment_id = 1;
+}
+
+message GetShipmentResponse {
+  ShipmentSummary shipment = 1;
+}
+
+message UpdateStatusRequest {
+  string shipment_id = 1;
+  string status      = 2;
+}
+
+message UpdateStatusResponse {
+  bool success = 1;
+}
+
+message UpdateLocationRequest {
+  string   shipment_id = 1;
+  string   driver_id   = 2;
+  GeoPoint location    = 3;
+  double   speed_kmh   = 4;
+}
+
+message UpdateLocationResponse {
+  bool success = 1;
+}
+
+message AssignDriverRequest {
+  string shipment_id = 1;
+  string driver_id   = 2;
+}
+
+message AssignDriverResponse {
+  bool success = 1;
+}
+
+message ListShipmentsRequest {
+  string sender_id = 1;
+  string status    = 2;
+  string after     = 3; // cursor
+  int32  limit     = 4;
+}
+
+message ListShipmentsResponse {
+  repeated ShipmentSummary shipments   = 1;
+  string                   next_cursor = 2;
+  bool                     has_more    = 3;
+}

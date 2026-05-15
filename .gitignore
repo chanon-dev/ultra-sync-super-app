@@ -1,0 +1,44 @@
+# Go
+backend/**/*.exe
+backend/**/*.exe~
+backend/**/*.dll
+backend/**/*.so
+backend/**/*.dylib
+backend/**/vendor/
+backend/**/*.test
+backend/**/bin/
+backend/**/dist/
+backend/**/gen/
+backend/**/*.out
+
+# Flutter / Dart
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/build/
+frontend/.fvm/
+frontend/pubspec.lock
+frontend/lib/**/*.g.dart
+frontend/lib/**/*.freezed.dart
+
+# Secrets / Env
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/vault-token
+backend/configs/vault*.hcl
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Buf generated code
+backend/proto/gen/
+
+# Docker volumes
+backend/data/
