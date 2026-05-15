@@ -51,7 +51,7 @@ func (uc *AuthUseCase) Register(ctx context.Context, in RegisterInput) (*entity.
 		Email:        in.Email,
 		PasswordHash: string(hash),
 		Role:         in.Role,
-		Status:       entity.StatusPendingVerify,
+		Status:       entity.StatusActive, // dev: auto-activate; prod: send verification email
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}

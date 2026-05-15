@@ -84,6 +84,10 @@ func (uc *ShipmentUseCase) AssignDriver(ctx context.Context, shipmentID, driverI
 	return uc.repo.UpdateStatus(ctx, shipmentID, entity.StatusAssigned)
 }
 
+func (uc *ShipmentUseCase) UpdateStatus(ctx context.Context, id uuid.UUID, status entity.ShipmentStatus) error {
+	return uc.repo.UpdateStatus(ctx, id, status)
+}
+
 func (uc *ShipmentUseCase) GetShipment(ctx context.Context, id uuid.UUID) (*entity.Shipment, error) {
 	s, err := uc.repo.FindByID(ctx, id)
 	if err != nil {

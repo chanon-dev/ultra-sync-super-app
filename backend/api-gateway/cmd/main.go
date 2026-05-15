@@ -2,13 +2,18 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/chanon/ultra-sync/api-gateway/internal/middleware"
 	"github.com/chanon/ultra-sync/api-gateway/internal/proxy"
 	"github.com/chanon/ultra-sync/pkg/logger"
 	"github.com/chanon/ultra-sync/pkg/tracing"
@@ -43,6 +48,17 @@ func main() {
 		log.Fatal("init reverse proxy", zap.Error(err))
 	}
 
+	// Fetch the RSA public key from the auth service (retry until ready).
+	authPublicKey, err := fetchAuthPublicKey(
+		ctx,
+		getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),
+		log,
+	)
+	if err != nil {
+		log.Fatal("fetch auth public key", zap.Error(err))
+	}
+	log.Info("loaded RSA public key from auth service")
+
 	if env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -55,12 +71,14 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "api-gateway"})
 	})
 
-	// Auth routes (public — no JWT required)
+	// Public routes — no JWT required.
 	router.Any("/api/v1/auth/*path", rp.Forward("auth"))
 
-	// Protected routes (Phase 2: add JWT middleware here)
-	router.Any("/api/v1/shipments/*path", rp.Forward("logistics"))
-	router.Any("/api/v1/wallet/*path",    rp.Forward("wallet"))
+	// Protected routes — JWT verification applied.
+	protected := router.Group("/")
+	protected.Use(middleware.JWT(authPublicKey))
+	protected.Any("/api/v1/shipments/*path", rp.Forward("logistics"))
+	protected.Any("/api/v1/wallet/*path", rp.Forward("wallet"))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", getEnv("PORT", "8080")),
@@ -85,6 +103,67 @@ func main() {
 	shutCtx, shutCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutCancel()
 	srv.Shutdown(shutCtx) //nolint:errcheck
+}
+
+// fetchAuthPublicKey polls the auth service for its RSA public key, retrying
+// with linear backoff until the service is reachable (handles startup ordering).
+func fetchAuthPublicKey(ctx context.Context, authURL string, log *zap.Logger) (*rsa.PublicKey, error) {
+	endpoint := authURL + "/api/v1/auth/public-key"
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	for attempt := 1; attempt <= 10; attempt++ {
+		key, err := tryFetchKey(ctx, client, endpoint)
+		if err == nil {
+			return key, nil
+		}
+		log.Warn("auth service not ready, retrying",
+			zap.Int("attempt", attempt), zap.Error(err))
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(time.Duration(attempt) * time.Second):
+		}
+	}
+
+	return nil, fmt.Errorf("auth service unreachable after 10 attempts")
+}
+
+func tryFetchKey(ctx context.Context, client *http.Client, endpoint string) (*rsa.PublicKey, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	block, _ := pem.Decode(body)
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parse public key: %w", err)
+	}
+
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("expected RSA public key, got %T", pub)
+	}
+	return rsaPub, nil
 }
 
 func rateLimitMiddleware(limiter *rate.Limiter) gin.HandlerFunc {

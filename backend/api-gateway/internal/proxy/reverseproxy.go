@@ -49,6 +49,8 @@ func New(services []ServiceConfig, log *zap.Logger) (*ReverseProxy, error) {
 }
 
 // Forward returns a Gin handler that forwards the request to the named service.
+// It injects X-User-ID and X-User-Role headers from validated JWT claims so
+// upstream services can trust the caller's identity without re-validating tokens.
 func (rp *ReverseProxy) Forward(serviceName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		proxy, ok := rp.proxies[serviceName]
@@ -63,6 +65,13 @@ func (rp *ReverseProxy) Forward(serviceName string) gin.HandlerFunc {
 			zap.String("service", serviceName),
 			zap.String("path", c.Request.URL.Path),
 		)
+
+		if uid, exists := c.Get("user_id"); exists {
+			c.Request.Header.Set("X-User-ID", fmt.Sprintf("%v", uid))
+		}
+		if role, exists := c.Get("role"); exists {
+			c.Request.Header.Set("X-User-Role", fmt.Sprintf("%v", role))
+		}
 
 		proxy.ServeHTTP(c.Writer, c.Request)
 	}

@@ -1,36 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ultra_sync/core/di/injection.dart';
-import 'package:ultra_sync/core/services/biometric_service.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+  String _selectedRole = 'user';
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    context.read<AuthBloc>().add(AuthLoginRequested(
+    context.read<AuthBloc>().add(AuthRegisterRequested(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          role: _selectedRole,
         ));
   }
 
@@ -39,6 +42,15 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
+          if (state is AuthRegistered) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Account created! Please sign in.'),
+                backgroundColor: AppColors.secondary,
+              ),
+            );
+            context.go('/login');
+          }
           if (state is AuthFailureState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -56,9 +68,14 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 40),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios,
+                        color: AppColors.onBackground),
+                    onPressed: () => context.go('/login'),
+                  ),
+                  const SizedBox(height: 24),
                   Text(
-                    'Welcome back',
+                    'Create account',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           color: AppColors.onBackground,
                           fontWeight: FontWeight.w700,
@@ -66,12 +83,12 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to Ultra-Sync',
+                    'Join Ultra-Sync today',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: AppColors.onSurface,
                         ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 40),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -91,8 +108,7 @@ class _LoginPageState extends State<LoginPage> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
+                    textInputAction: TextInputAction.next,
                     style: const TextStyle(color: AppColors.onBackground),
                     decoration: InputDecoration(
                       labelText: 'Password',
@@ -106,9 +122,41 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Password is required';
+                      if (v == null || v.length < 8) {
+                        return 'Password must be at least 8 characters';
+                      }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _confirmController,
+                    obscureText: _obscureConfirm,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submit(),
+                    style: const TextStyle(color: AppColors.onBackground),
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureConfirm
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined),
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v != _passwordController.text) {
+                        return 'Passwords do not match';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _RoleSelector(
+                    selected: _selectedRole,
+                    onChanged: (role) => setState(() => _selectedRole = role),
                   ),
                   const SizedBox(height: 32),
                   BlocBuilder<AuthBloc, AuthState>(
@@ -123,23 +171,21 @@ class _LoginPageState extends State<LoginPage> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Sign In'),
+                          : const Text('Create Account'),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _BiometricButton(),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        'Already have an account? ',
                         style: TextStyle(color: AppColors.onSurface),
                       ),
                       GestureDetector(
-                        onTap: () => context.go('/register'),
+                        onTap: () => context.go('/login'),
                         child: const Text(
-                          'Sign Up',
+                          'Sign In',
                           style: TextStyle(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -158,27 +204,82 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-class _BiometricButton extends StatelessWidget {
+class _RoleSelector extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _RoleSelector({required this.selected, required this.onChanged});
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: getIt<BiometricService>().isAvailable(),
-      builder: (context, snapshot) {
-        if (snapshot.data != true) return const SizedBox.shrink();
-        return OutlinedButton.icon(
-          onPressed: () =>
-              context.read<AuthBloc>().add(const AuthBiometricRequested()),
-          icon: const Icon(Icons.fingerprint_rounded),
-          label: const Text('Sign in with Biometrics'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 52),
-            foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Account type',
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: AppColors.onSurface),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _RoleChip(
+              label: 'Customer',
+              value: 'user',
+              selected: selected == 'user',
+              onTap: () => onChanged('user'),
+            ),
+            const SizedBox(width: 12),
+            _RoleChip(
+              label: 'Driver',
+              value: 'driver',
+              selected: selected == 'driver',
+              onTap: () => onChanged('driver'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RoleChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RoleChip({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? AppColors.primary : Colors.transparent,
           ),
-        );
-      },
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.onSurface,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
     );
   }
 }

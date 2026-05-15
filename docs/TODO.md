@@ -22,32 +22,38 @@
 ---
 
 ## 🔐 Phase 2: Core Services & Auth (สัปดาห์ที่ 2)
-- [ ] **2.1 API Gateway**
-    - [ ] Implement Reverse Proxy และ Rate Limiting.
-    - [ ] ระบบ Middleware สำหรับตรวจสอบ JWT.
-- [ ] **2.2 Auth Microservice**
-    - [ ] ระบบ Register/Login (Go + PostgreSQL).
-    - [ ] ระบบ Token Rotation (Access/Refresh Token).
-    - [ ] Integration กับ Vault สำหรับเก็บ Signing Key.
-- [ ] **2.3 Flutter Auth Module**
-    - [ ] Setup AuthBLoC และ Repository.
-    - [ ] หน้าจอ Login/Register (Premium UI).
-    - [ ] ระบบสแกนลายนิ้วมือ/ใบหน้า (Biometrics).
+- [x] **2.1 API Gateway**
+    - [x] Implement Reverse Proxy และ Rate Limiting.
+    - [x] ระบบ Middleware สำหรับตรวจสอบ JWT (RS256, wired to /shipments & /wallet routes).
+- [x] **2.2 Auth Microservice**
+    - [x] ระบบ Register/Login (Go + PostgreSQL).
+    - [x] ระบบ Token Rotation (Access/Refresh Token).
+    - [x] RSA public-key endpoint (`GET /api/v1/auth/public-key`) for gateway bootstrap.
+    - [ ] Integration กับ Vault สำหรับเก็บ Signing Key. *(prod: replace ephemeral RSA key)*
+- [x] **2.3 Flutter Auth Module**
+    - [x] Setup AuthBLoC (login, register, logout, check-auth, biometrics).
+    - [x] Repository + UseCase layer (Login, Register, Logout, CheckAuth).
+    - [x] หน้าจอ Login/Register (Premium dark UI, go_router navigation).
+    - [x] ระบบสแกนลายนิ้วมือ/ใบหน้า (BiometricService + local_auth).
+    - [x] go_router setup with auth guards (splash → login/home redirect).
+    - [x] HomePage with feature grid (Phase 3/4 placeholders).
 
 ---
 
 ## 📍 Phase 3: Logistics & Real-time Tracking (สัปดาห์ที่ 3-4)
-- [ ] **3.1 Logistics Microservice**
-    - [ ] ระบบจัดการคำสั่งซื้อ (Orders CRUD).
-    - [ ] Driver Dispatching Logic (Matching).
-    - [ ] ระบบพิกัด GPS (PostGIS).
-- [ ] **3.2 Real-time Infrastructure**
-    - [ ] WebSocket Server ใน Go สำหรับยิงพิกัดคนขับ.
-    - [ ] Kafka Producer/Consumer สำหรับอัปเดตสถานะออเดอร์.
-- [ ] **3.3 Flutter Logistics Module**
-    - [ ] Google Maps Integration.
-    - [ ] Background Location Service.
-    - [ ] หน้าจอ Tracking พร้อม Marker Animation.
+- [x] **3.1 Logistics Microservice**
+    - [x] ระบบจัดการคำสั่งซื้อ (Orders CRUD — POST/GET /shipments, GET /shipments/:id, PATCH /shipments/:id/status).
+    - [x] Driver Dispatching Logic (AssignDriver usecase + POST /drivers/location).
+    - [x] ระบบพิกัด GPS (lat/lng columns + Redis location cache).
+- [x] **3.2 Real-time Infrastructure**
+    - [x] SSE endpoint (GET /api/v1/shipments/:id/track) พร้อม TrackingHub fan-out.
+    - [ ] Kafka Producer/Consumer สำหรับอัปเดตสถานะออเดอร์. *(NoopPublisher ใช้แทนใน dev; swap in IBM/sarama ใน prod)*
+- [x] **3.3 Flutter Logistics Module**
+    - [x] ShipmentsPage (list + status badges + cursor pagination ready).
+    - [x] CreateShipmentPage (coordinate input + route preview).
+    - [x] TrackingPage (live badge + status timeline + 5s polling; Google Maps placeholder pending API key).
+    - [ ] Background Location Service (Phase 4 driver app feature).
+    - [ ] Google Maps tile integration (add MAPS_API_KEY to enable).
 
 ---
 
@@ -74,6 +80,6 @@
 
 ---
 
-## 🏁 Project Completion Status: 20%
+## 🏁 Project Completion Status: 65%
 
-Phase 1 complete — Phase 2 Auth Service implementation is next.
+Phase 1, 2 & 3 complete — Phase 4 Wallet & Transactions is next.

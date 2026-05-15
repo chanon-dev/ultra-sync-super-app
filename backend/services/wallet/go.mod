@@ -14,3 +14,5 @@ require (
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.1
 )
+
+replace github.com/chanon/ultra-sync/pkg => ../../pkg

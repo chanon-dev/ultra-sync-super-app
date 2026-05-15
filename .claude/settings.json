@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(GONOSUMDB='github.com/chanon/*' GOFLAGS='-mod=mod' go work sync)",
+      "Bash(GONOSUMDB='*' GOPRIVATE='github.com/chanon/*' go work sync)",
+      "Bash(GOPROXY=off go work sync)",
+      "Bash(GONOSUMDB='*' go work sync)",
+      "Bash(GOWORK=off GONOSUMDB='*' go mod tidy)",
+      "Bash(GOWORK=off go build ./...)",
+      "Bash(GONOSUMDB='*' go build github.com/chanon/ultra-sync/services/logistics/...)",
+      "Bash(flutter analyze *)",
+      "Bash(which flutter *)",
+      "Read(//opt/homebrew/bin/**)"
+    ]
+  }
+}

@@ -11,8 +11,14 @@ import (
 
 	"github.com/chanon/ultra-sync/pkg/logger"
 	"github.com/chanon/ultra-sync/pkg/tracing"
+	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/events"
+	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/httphandler"
+	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/postgres"
+	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/rediscache"
+	"github.com/chanon/ultra-sync/services/logistics/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -42,7 +48,28 @@ func main() {
 		log.Fatal("ping logisticsdb", zap.Error(err))
 	}
 
-	// TODO Phase 3: wire ShipmentUseCase + adapters (Postgres, Redis, Kafka)
+	redisOpts, err := redis.ParseURL(getEnv("REDIS_URL", "redis://:redispass@localhost:6379/1"))
+	if err != nil {
+		log.Fatal("parse redis url", zap.Error(err))
+	}
+	rdb := redis.NewClient(redisOpts)
+	defer rdb.Close()
+
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		log.Fatal("ping redis", zap.Error(err))
+	}
+
+	// Wire adapters.
+	shipmentRepo := postgres.NewShipmentRepo(dbPool)
+	logRepo      := postgres.NewShipmentLogRepo(dbPool)
+	locCache     := rediscache.New(rdb)
+	publisher    := events.NewNoop()
+
+	// Wire use case.
+	shipmentUC := usecase.New(shipmentRepo, logRepo, locCache, publisher)
+
+	// Wire HTTP handler.
+	handler := httphandler.New(shipmentUC)
 
 	if env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -52,13 +79,14 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "logistics"})
 	})
+	handler.Register(router)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", getEnv("PORT", "8082")),
 		Handler:      router,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second, // longer for SSE streams
+		IdleTimeout:  120 * time.Second,
 	}
 
 	go func() {

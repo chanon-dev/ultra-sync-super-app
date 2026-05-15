@@ -1,6 +1,9 @@
 package httphandler
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"net/http"
 
 	"github.com/chanon/ultra-sync/pkg/response"
@@ -10,11 +13,12 @@ import (
 )
 
 type Handler struct {
-	auth *usecase.AuthUseCase
+	auth         *usecase.AuthUseCase
+	rsaPublicKey *rsa.PublicKey
 }
 
-func New(auth *usecase.AuthUseCase) *Handler {
-	return &Handler{auth: auth}
+func New(auth *usecase.AuthUseCase, rsaPublicKey *rsa.PublicKey) *Handler {
+	return &Handler{auth: auth, rsaPublicKey: rsaPublicKey}
 }
 
 func (h *Handler) Register(r gin.IRouter) {
@@ -23,6 +27,21 @@ func (h *Handler) Register(r gin.IRouter) {
 	v1.POST("/login", h.login)
 	v1.POST("/refresh", h.refresh)
 	v1.POST("/logout", h.logout)
+	v1.GET("/public-key", h.getPublicKey)
+}
+
+// GET /api/v1/auth/public-key returns the RSA public key in PEM format.
+// Used by the API Gateway on startup to bootstrap JWT verification.
+func (h *Handler) getPublicKey(c *gin.Context) {
+	der, err := x509.MarshalPKIXPublicKey(h.rsaPublicKey)
+	if err != nil {
+		response.Internal(c)
+		return
+	}
+	c.Header("Content-Type", "application/x-pem-file")
+	if err := pem.Encode(c.Writer, &pem.Block{Type: "PUBLIC KEY", Bytes: der}); err != nil {
+		response.Internal(c)
+	}
 }
 
 // POST /api/v1/auth/register

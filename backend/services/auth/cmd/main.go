@@ -77,7 +77,7 @@ func main() {
 	sessionStore := redisstore.New(rdb)
 	tokenSigner  := authjwt.New(privateKey, &privateKey.PublicKey, "ultra-sync-auth")
 	authUC       := usecase.New(userRepo, sessionStore, tokenSigner)
-	handler      := httphandler.New(authUC)
+	handler      := httphandler.New(authUC, &privateKey.PublicKey)
 
 	// HTTP server
 	if env == "production" {

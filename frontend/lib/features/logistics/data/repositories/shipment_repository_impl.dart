@@ -1,0 +1,66 @@
+import 'package:fpdart/fpdart.dart';
+import 'package:injectable/injectable.dart';
+import 'package:ultra_sync/core/error/failures.dart';
+import 'package:ultra_sync/features/logistics/data/datasources/shipment_remote_data_source.dart';
+import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
+import 'package:ultra_sync/features/logistics/domain/repositories/shipment_repository.dart';
+
+@LazySingleton(as: ShipmentRepository)
+class ShipmentRepositoryImpl implements ShipmentRepository {
+  final ShipmentRemoteDataSource _remote;
+  ShipmentRepositoryImpl(this._remote);
+
+  @override
+  Future<Either<Failure, Shipment>> createShipment({
+    required double pickupLat,
+    required double pickupLng,
+    required double dropoffLat,
+    required double dropoffLng,
+  }) async {
+    try {
+      final shipment = await _remote.createShipment(
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
+        dropoffLat: dropoffLat,
+        dropoffLng: dropoffLng,
+      );
+      return Right(shipment);
+    } on Failure catch (f) {
+      return Left(f);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Shipment>>> listShipments({
+    String? status,
+    String? after,
+    int limit = 20,
+  }) async {
+    try {
+      final shipments = await _remote.listShipments(
+        status: status,
+        after: after,
+        limit: limit,
+      );
+      return Right(shipments);
+    } on Failure catch (f) {
+      return Left(f);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Shipment>> getShipment(String id) async {
+    try {
+      final shipment = await _remote.getShipment(id);
+      return Right(shipment);
+    } on Failure catch (f) {
+      return Left(f);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+}
