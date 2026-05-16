@@ -1,12 +1,15 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+import { Options } from 'k6/options';
 import { Rate, Trend } from 'k6/metrics';
+import { BASE_URL, register, login, bearerHeaders } from './utils/auth';
+import { ApiResponse, Shipment, GeoCoord, SetupData } from './types';
 
 const errorRate = new Rate('error_rate');
 const createDuration = new Trend('create_shipment_duration', true);
 const listDuration = new Trend('list_shipments_duration', true);
 
-export const options = {
+export const options: Options = {
   stages: [
     { duration: '30s', target: 10 },
     { duration: '2m',  target: 25 },
@@ -19,43 +22,24 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-
-function login(email, password) {
-  const res = http.post(
-    `${BASE_URL}/api/v1/auth/login`,
-    JSON.stringify({ email, password }),
-    { headers: { 'Content-Type': 'application/json' } },
-  );
-  if (res.status !== 200) return null;
-  return JSON.parse(res.body)?.data?.access_token || null;
-}
-
-export function setup() {
-  const email = `logistics-load@example.com`;
-  http.post(
-    `${BASE_URL}/api/v1/auth/register`,
-    JSON.stringify({ email, password: 'Logistics@1234', role: 'user' }),
-    { headers: { 'Content-Type': 'application/json' } },
-  );
+export function setup(): SetupData {
+  const email = 'logistics-load@example.com';
+  register(email, 'Logistics@1234');
   const token = login(email, 'Logistics@1234');
   return { token };
 }
 
-// Bangkok bounding box for random coordinates.
-function randomBangkokGeo() {
-  const lat = 13.6 + Math.random() * 0.3;
-  const lng = 100.4 + Math.random() * 0.3;
-  return { lat, lng };
+function randomBangkokGeo(): GeoCoord {
+  return {
+    lat: 13.6 + Math.random() * 0.3,
+    lng: 100.4 + Math.random() * 0.3,
+  };
 }
 
-export default function (data) {
+export default function (data: SetupData): void {
   if (!data.token) return;
 
-  const authHeaders = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${data.token}`,
-  };
+  const authHeaders = bearerHeaders(data.token);
 
   // ── List shipments ────────────────────────────────────────────────────────
   const listStart = Date.now();
@@ -65,7 +49,11 @@ export default function (data) {
   const listOk = check(listRes, {
     'list status 200': (r) => r.status === 200,
     'list has data array': (r) => {
-      try { return Array.isArray(JSON.parse(r.body).data); } catch { return false; }
+      try {
+        return Array.isArray((JSON.parse(r.body as string) as ApiResponse<Shipment[]>).data);
+      } catch {
+        return false;
+      }
     },
   });
   errorRate.add(!listOk);
@@ -80,10 +68,10 @@ export default function (data) {
   const createRes = http.post(
     `${BASE_URL}/api/v1/shipments`,
     JSON.stringify({
-      pickup_lat:   pickup.lat,
-      pickup_lng:   pickup.lng,
-      dropoff_lat:  dropoff.lat,
-      dropoff_lng:  dropoff.lng,
+      pickup_lat:  pickup.lat,
+      pickup_lng:  pickup.lng,
+      dropoff_lat: dropoff.lat,
+      dropoff_lng: dropoff.lng,
     }),
     { headers: authHeaders },
   );
@@ -92,14 +80,18 @@ export default function (data) {
   const createOk = check(createRes, {
     'create status 201': (r) => r.status === 201,
     'create has shipment id': (r) => {
-      try { return !!JSON.parse(r.body).data?.id; } catch { return false; }
+      try {
+        return !!(JSON.parse(r.body as string) as ApiResponse<Shipment>).data?.id;
+      } catch {
+        return false;
+      }
     },
   });
   errorRate.add(!createOk);
 
   // ── Get shipment detail ───────────────────────────────────────────────────
   if (createRes.status === 201) {
-    const shipmentId = JSON.parse(createRes.body)?.data?.id;
+    const shipmentId = (JSON.parse(createRes.body as string) as ApiResponse<Shipment>)?.data?.id;
     if (shipmentId) {
       const detailRes = http.get(
         `${BASE_URL}/api/v1/shipments/${shipmentId}`,
@@ -108,7 +100,11 @@ export default function (data) {
       check(detailRes, {
         'detail status 200': (r) => r.status === 200,
         'detail matches created id': (r) => {
-          try { return JSON.parse(r.body).data?.id === shipmentId; } catch { return false; }
+          try {
+            return (JSON.parse(r.body as string) as ApiResponse<Shipment>).data?.id === shipmentId;
+          } catch {
+            return false;
+          }
         },
       });
     }

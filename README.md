@@ -264,25 +264,87 @@ flutter analyze
 
 ---
 
-## Production Configuration
+## Environment Configuration
+
+### How it works
+
+| Layer    | Local dev                              | CI / Production                          |
+| -------- | -------------------------------------- | ---------------------------------------- |
+| Backend  | `.env` file per service (godotenv)     | Shell env vars / K8s Secrets             |
+| Frontend | `frontend/.env` bundled as asset       | `--dart-define` flags at build time      |
+
+Both layers use `env.example` as the committed template. `.env` files are gitignored.
+
+To bootstrap local dev from scratch:
+
+```bash
+# Backend (run once per service)
+for svc in services/auth services/logistics services/wallet api-gateway; do
+  cp backend/$svc/env.example backend/$svc/.env
+done
+
+# Frontend
+cp frontend/env.example frontend/.env
+```
+
+---
 
 ### Backend Environment Variables
 
-| Variable             | Service         | Description                                               |
-| -------------------- | --------------- | --------------------------------------------------------- |
-| `VAULT_ADDR`         | auth            | Vault server URL                                          |
-| `VAULT_TOKEN`        | auth            | Vault access token                                        |
-| `VAULT_KEY_PATH`     | auth            | KV v2 path to RSA key (`secret/data/auth/rsa-key`)        |
-| `KAFKA_BROKERS`      | logistics       | Comma-separated broker list (e.g. `kafka:9092`)           |
-| `WALLET_SERVICE_URL` | logistics       | Internal URL of wallet service for delivery saga          |
-| `DATABASE_URL`       | all             | PostgreSQL connection string                              |
-| `REDIS_ADDR`         | auth, logistics | Redis address                                             |
+**`services/auth`**
 
-### Flutter Build Flags
+| Variable | Default (dev) | Description |
+| --- | --- | --- |
+| `APP_ENV` | `development` | `production` enables Gin release mode |
+| `PORT` | `8081` | HTTP listen port |
+| `AUTH_DB_DSN` | `postgres://authuser:…@localhost:5432…` | PostgreSQL connection string |
+| `REDIS_URL` | `redis://:redispass@localhost:6379/0` | Redis URL (sessions) |
+| `VAULT_ADDR` | _(blank)_ | Blank → ephemeral RSA key; set in prod |
+| `VAULT_TOKEN` | _(blank)_ | Vault access token |
+| `VAULT_KEY_PATH` | `secret/data/auth/rsa-key` | KV v2 path to RSA private key PEM |
+| `OTLP_ENDPOINT` | `localhost:4318` | OpenTelemetry collector (Jaeger) |
 
-| Flag                              | Description                                 |
-| --------------------------------- | ------------------------------------------- |
-| `--dart-define=MAPS_API_KEY=<key>`| Enable live Google Maps on tracking screen  |
+**`services/logistics`**
+
+| Variable | Default (dev) | Description |
+| --- | --- | --- |
+| `PORT` | `8082` | HTTP listen port |
+| `LOGISTICS_DB_DSN` | `postgres://logisticsuser:…@localhost:5433…` | PostgreSQL connection string |
+| `REDIS_URL` | `redis://:redispass@localhost:6379/1` | Redis URL (GPS location cache) |
+| `KAFKA_BROKERS` | _(blank)_ | Blank → noop publisher; set to `host:9092` |
+| `WALLET_SERVICE_URL` | _(blank)_ | Blank → saga skipped; set to wallet base URL |
+| `OTLP_ENDPOINT` | `localhost:4318` | OpenTelemetry collector |
+
+**`services/wallet`**
+
+| Variable | Default (dev) | Description |
+| --- | --- | --- |
+| `PORT` | `8083` | HTTP listen port |
+| `WALLET_DB_DSN` | `postgres://walletuser:…@localhost:5434…` | PostgreSQL connection string |
+| `OTLP_ENDPOINT` | `localhost:4318` | OpenTelemetry collector |
+
+**`api-gateway`**
+
+| Variable | Default (dev) | Description |
+| --- | --- | --- |
+| `PORT` | `8080` | HTTP listen port |
+| `AUTH_SERVICE_URL` | `http://localhost:8081` | Auth service base URL |
+| `LOGISTICS_SERVICE_URL` | `http://localhost:8082` | Logistics service base URL |
+| `WALLET_SERVICE_URL` | `http://localhost:8083` | Wallet service base URL |
+| `OTLP_ENDPOINT` | `localhost:4318` | OpenTelemetry collector |
+
+---
+
+### Frontend Environment Variables
+
+Set in `frontend/.env` for local dev, or via `--dart-define` for CI/production builds.
+
+| Variable | Default (dev) | Description |
+| --- | --- | --- |
+| `API_BASE_URL` | `http://localhost:8080` | API Gateway base URL |
+| `MAPS_API_KEY` | _(blank)_ | Google Maps API key — blank shows coordinate placeholder |
+
+Priority: `.env` value → `--dart-define` value → hardcoded default.
 
 ### Kubernetes / Helm
 
