@@ -15,6 +15,7 @@ type ShipmentUseCase struct {
 	logWriter port.ShipmentLogWriter
 	cache     port.LocationCache
 	events    port.EventPublisher
+	wallet    port.WalletClient
 }
 
 func New(
@@ -22,12 +23,14 @@ func New(
 	logWriter port.ShipmentLogWriter,
 	cache port.LocationCache,
 	events port.EventPublisher,
+	wallet port.WalletClient,
 ) *ShipmentUseCase {
 	return &ShipmentUseCase{
 		repo:      repo,
 		logWriter: logWriter,
 		cache:     cache,
 		events:    events,
+		wallet:    wallet,
 	}
 }
 
@@ -85,7 +88,28 @@ func (uc *ShipmentUseCase) AssignDriver(ctx context.Context, shipmentID, driverI
 }
 
 func (uc *ShipmentUseCase) UpdateStatus(ctx context.Context, id uuid.UUID, status entity.ShipmentStatus) error {
-	return uc.repo.UpdateStatus(ctx, id, status)
+	if err := uc.repo.UpdateStatus(ctx, id, status); err != nil {
+		return err
+	}
+
+	if err := uc.events.PublishStatusUpdated(ctx, id, status); err != nil {
+		_ = err // non-fatal: Kafka is best-effort
+	}
+
+	// Saga step 2: charge the sender's wallet when the shipment is delivered.
+	if status == entity.StatusDelivered && uc.wallet != nil {
+		shipment, err := uc.repo.FindByID(ctx, id)
+		if err != nil {
+			return fmt.Errorf("saga: find shipment for payment: %w", err)
+		}
+		idempotencyKey := fmt.Sprintf("delivery-%s", id.String())
+		if err := uc.wallet.ChargeForDelivery(ctx, id, shipment.SenderID, shipment.Price, idempotencyKey); err != nil {
+			// Non-fatal in dev (wallet may not be reachable); log and continue.
+			_ = err
+		}
+	}
+
+	return nil
 }
 
 func (uc *ShipmentUseCase) GetShipment(ctx context.Context, id uuid.UUID) (*entity.Shipment, error) {

@@ -14,6 +14,8 @@ import 'package:ultra_sync/features/logistics/presentation/pages/create_shipment
 import 'package:ultra_sync/features/logistics/presentation/pages/shipments_page.dart';
 import 'package:ultra_sync/features/logistics/presentation/pages/tracking_page.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:ultra_sync/features/wallet/presentation/pages/qr_receive_page.dart';
+import 'package:ultra_sync/features/wallet/presentation/pages/qr_scan_page.dart';
 import 'package:ultra_sync/features/wallet/presentation/pages/wallet_page.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
@@ -68,6 +70,14 @@ GoRouter buildRouter(AuthBloc authBloc) {
           GoRoute(
             path: '/wallet',
             builder: (_, __) => const WalletPage(),
+          ),
+          GoRoute(
+            path: '/wallet/qr',
+            builder: (_, __) => const QrReceivePage(),
+          ),
+          GoRoute(
+            path: '/wallet/scan',
+            builder: (_, __) => const QrScanPage(),
           ),
         ],
       ),

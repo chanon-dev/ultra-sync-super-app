@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/httphandler"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/postgres"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/rediscache"
+	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/walletclient"
+	"github.com/chanon/ultra-sync/services/logistics/internal/domain/port"
 	"github.com/chanon/ultra-sync/services/logistics/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -63,10 +66,34 @@ func main() {
 	shipmentRepo := postgres.NewShipmentRepo(dbPool)
 	logRepo      := postgres.NewShipmentLogRepo(dbPool)
 	locCache     := rediscache.New(rdb)
-	publisher    := events.NewNoop()
+
+	var publisher port.EventPublisher
+	if brokerList := getEnv("KAFKA_BROKERS", ""); brokerList != "" {
+		kp, err := events.NewKafka(strings.Split(brokerList, ","))
+		if err != nil {
+			log.Fatal("connect to kafka", zap.Error(err))
+		}
+		defer kp.Close() //nolint:errcheck
+		publisher = kp
+		log.Info("using kafka publisher", zap.String("brokers", brokerList))
+	} else {
+		publisher = events.NewNoop()
+		log.Warn("using noop event publisher — set KAFKA_BROKERS for production")
+	}
+
+	// Saga: wallet client charges sender when shipment is delivered.
+	// Set WALLET_SERVICE_URL (e.g. http://wallet-service:8083) in production.
+	walletURL := getEnv("WALLET_SERVICE_URL", "")
+	var walletSaga port.WalletClient
+	if walletURL != "" {
+		walletSaga = walletclient.New(walletURL)
+		log.Info("saga wallet client enabled", zap.String("url", walletURL))
+	} else {
+		log.Warn("WALLET_SERVICE_URL not set — delivery saga payment disabled in dev")
+	}
 
 	// Wire use case.
-	shipmentUC := usecase.New(shipmentRepo, logRepo, locCache, publisher)
+	shipmentUC := usecase.New(shipmentRepo, logRepo, locCache, publisher, walletSaga)
 
 	// Wire HTTP handler.
 	handler := httphandler.New(shipmentUC)

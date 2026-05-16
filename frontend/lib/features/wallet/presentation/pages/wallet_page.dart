@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/wallet/domain/entities/wallet.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
@@ -189,21 +190,36 @@ class _BalanceCard extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                foregroundColor: Colors.black,
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size(0, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 20),
+                  label: const Text('Top Up',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  onPressed: () => _showTopUpSheet(context),
+                ),
               ),
-              icon: const Icon(Icons.add_rounded, size: 20),
-              label: const Text('Top Up',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              onPressed: () => _showTopUpSheet(context),
-            ),
+              const SizedBox(width: 10),
+              _QrButton(
+                icon: Icons.qr_code_rounded,
+                tooltip: 'Receive',
+                onTap: () => context.push('/wallet/qr'),
+              ),
+              const SizedBox(width: 8),
+              _QrButton(
+                icon: Icons.qr_code_scanner_rounded,
+                tooltip: 'Scan',
+                onTap: () => context.push('/wallet/scan'),
+              ),
+            ],
           ),
         ],
       ),
@@ -462,6 +478,34 @@ class _EmptyTransactions extends StatelessWidget {
                 ?.copyWith(color: AppColors.onSurface),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QrButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  const _QrButton({required this.icon, required this.tooltip, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.secondary.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
+          ),
+          child: Icon(icon, color: AppColors.secondary, size: 22),
+        ),
       ),
     );
   }

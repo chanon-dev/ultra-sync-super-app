@@ -17,6 +17,7 @@ import (
 	authjwt "github.com/chanon/ultra-sync/services/auth/internal/adapter/jwt"
 	"github.com/chanon/ultra-sync/services/auth/internal/adapter/postgres"
 	"github.com/chanon/ultra-sync/services/auth/internal/adapter/redisstore"
+	authvault "github.com/chanon/ultra-sync/services/auth/internal/adapter/vault"
 	"github.com/chanon/ultra-sync/services/auth/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -65,12 +66,23 @@ func main() {
 		log.Fatal("ping redis", zap.Error(err))
 	}
 
-	// JWT RSA key (dev: generate ephemeral; prod: load from Vault)
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		log.Fatal("generate rsa key", zap.Error(err))
+	// JWT RSA key: load from Vault when VAULT_ADDR is set; otherwise generate ephemeral.
+	var privateKey *rsa.PrivateKey
+	if vaultAddr := os.Getenv("VAULT_ADDR"); vaultAddr != "" {
+		vaultToken := os.Getenv("VAULT_TOKEN")
+		vaultPath  := getEnv("VAULT_KEY_PATH", "secret/data/auth/rsa-key")
+		privateKey, err = authvault.LoadRSAKey(vaultAddr, vaultToken, vaultPath)
+		if err != nil {
+			log.Fatal("load RSA key from Vault", zap.Error(err))
+		}
+		log.Info("RSA key loaded from Vault", zap.String("path", vaultPath))
+	} else {
+		privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			log.Fatal("generate rsa key", zap.Error(err))
+		}
+		log.Warn("using ephemeral RSA key — set VAULT_ADDR + VAULT_TOKEN + VAULT_KEY_PATH for production")
 	}
-	log.Warn("using ephemeral RSA key — load from Vault in production")
 
 	// Wire dependencies
 	userRepo     := postgres.NewUserRepo(dbPool)

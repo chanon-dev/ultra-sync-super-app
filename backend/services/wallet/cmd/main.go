@@ -48,7 +48,7 @@ func main() {
 	walletRepo := postgres.NewWalletRepo(dbPool)
 	txRepo := postgres.NewTransactionRepo(dbPool)
 	uc := usecase.New(walletRepo, txRepo)
-	handler := httphandler.New(uc)
+	handler := httphandler.New(uc, log)
 
 	if env == "production" {
 		gin.SetMode(gin.ReleaseMode)

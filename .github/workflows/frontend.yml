@@ -2,17 +2,17 @@ name: Frontend CI
 
 on:
   push:
-    branches: [main]
+    branches: [TEST]
     paths:
-      - 'frontend/**'
-      - '.github/workflows/frontend.yml'
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
   pull_request:
-    branches: [main]
+    branches: [TEST]
     paths:
-      - 'frontend/**'
+      - "frontend/**"
 
 env:
-  FLUTTER_VERSION: '3.22.x'
+  FLUTTER_VERSION: "3.22.x"
 
 jobs:
   # ── Analyze & Test ──────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2

@@ -92,7 +92,7 @@ func TestCreateShipment_Success(t *testing.T) {
 		},
 		&stubLogWriter{},
 		&stubLocationCache{},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	s, err := uc.CreateShipment(context.Background(), usecase.CreateShipmentInput{
@@ -121,7 +121,7 @@ func TestCreateShipment_RepoError(t *testing.T) {
 		},
 		&stubLogWriter{},
 		&stubLocationCache{},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	_, err := uc.CreateShipment(context.Background(), usecase.CreateShipmentInput{
@@ -146,6 +146,7 @@ func TestCreateShipment_EventPublishFailureNonFatal(t *testing.T) {
 			publishCreatedFn: func(_ context.Context, _ *entity.Shipment) error { return errors.New("kafka down") },
 			publishStatusFn:  func(_ context.Context, _ uuid.UUID, _ entity.ShipmentStatus) error { return nil },
 		},
+		nil,
 	)
 
 	_, err := uc.CreateShipment(context.Background(), usecase.CreateShipmentInput{
@@ -173,7 +174,7 @@ func TestAssignDriver_Success(t *testing.T) {
 		},
 		&stubLogWriter{},
 		&stubLocationCache{},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	if err := uc.AssignDriver(context.Background(), shipmentID, driverID); err != nil {
@@ -191,7 +192,7 @@ func TestAssignDriver_RepoError(t *testing.T) {
 		},
 		&stubLogWriter{},
 		&stubLocationCache{},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	err := uc.AssignDriver(context.Background(), uuid.New(), uuid.New())
@@ -215,7 +216,7 @@ func TestUpdateLocation_Success(t *testing.T) {
 		&stubLocationCache{
 			setFn: func(_ context.Context, _ uuid.UUID, _ entity.GeoPoint) error { return nil },
 		},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	err := uc.UpdateLocation(context.Background(), uuid.New(), uuid.New(), geo(13.7, 100.5), 60.0)
@@ -234,7 +235,7 @@ func TestUpdateLocation_CacheError(t *testing.T) {
 		&stubLocationCache{
 			setFn: func(_ context.Context, _ uuid.UUID, _ entity.GeoPoint) error { return errDB },
 		},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	err := uc.UpdateLocation(context.Background(), uuid.New(), uuid.New(), geo(1, 1), 0)
@@ -255,7 +256,7 @@ func TestGetShipment_Success(t *testing.T) {
 		},
 		&stubLogWriter{},
 		&stubLocationCache{},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	got, err := uc.GetShipment(context.Background(), id)
@@ -274,7 +275,7 @@ func TestGetShipment_NotFound(t *testing.T) {
 		},
 		&stubLogWriter{},
 		&stubLocationCache{},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	_, err := uc.GetShipment(context.Background(), uuid.New())
@@ -296,7 +297,7 @@ func TestUpdateStatus_Success(t *testing.T) {
 		},
 		&stubLogWriter{},
 		&stubLocationCache{},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	if err := uc.UpdateStatus(context.Background(), uuid.New(), entity.StatusDelivered); err != nil {
@@ -323,7 +324,7 @@ func TestListShipments_ReturnsList(t *testing.T) {
 		},
 		&stubLogWriter{},
 		&stubLocationCache{},
-		noopPublisher(),
+		noopPublisher(), nil,
 	)
 
 	got, _, err := uc.ListShipments(context.Background(), port.ListQuery{Limit: 20})

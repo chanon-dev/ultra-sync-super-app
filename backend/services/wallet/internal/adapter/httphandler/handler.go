@@ -10,20 +10,23 @@ import (
 	"github.com/chanon/ultra-sync/services/wallet/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type Handler struct {
-	uc *usecase.WalletUseCase
+	uc  *usecase.WalletUseCase
+	log *zap.Logger
 }
 
-func New(uc *usecase.WalletUseCase) *Handler {
-	return &Handler{uc: uc}
+func New(uc *usecase.WalletUseCase, log *zap.Logger) *Handler {
+	return &Handler{uc: uc, log: log}
 }
 
 func (h *Handler) Register(r gin.IRouter) {
 	v1 := r.Group("/api/v1/wallet")
 	v1.GET("/balance", h.getBalance)
 	v1.POST("/topup", h.topUp)
+	v1.POST("/pay", h.pay)
 	v1.GET("/transactions", h.listTransactions)
 }
 
@@ -81,7 +84,69 @@ func (h *Handler) topUp(c *gin.Context) {
 		return
 	}
 
+	h.log.Info("audit: wallet.topup",
+		zap.String("user_id", userID.String()),
+		zap.String("tx_id", tx.ID.String()),
+		zap.String("amount", tx.Amount),
+		zap.String("balance_after", tx.BalanceAfter),
+		zap.String("idempotency_key", idempotencyKey),
+	)
 	response.Created(c, transactionJSON(tx))
+}
+
+// POST /api/v1/wallet/pay — debit wallet for a delivered shipment (called by Saga orchestrator).
+func (h *Handler) pay(c *gin.Context) {
+	userID, ok := userIDFromHeader(c)
+	if !ok {
+		response.Unauthorized(c)
+		return
+	}
+
+	idempotencyKey := c.GetHeader("X-Idempotency-Key")
+	if idempotencyKey == "" {
+		response.BadRequest(c, "VAL-001", "X-Idempotency-Key header is required")
+		return
+	}
+
+	var req struct {
+		ShipmentID string `json:"shipment_id" binding:"required"`
+		Amount     string `json:"amount"      binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "VAL-001", err.Error())
+		return
+	}
+
+	shipmentID, err := uuid.Parse(req.ShipmentID)
+	if err != nil {
+		response.BadRequest(c, "VAL-002", "invalid shipment_id")
+		return
+	}
+
+	tx, err := h.uc.Pay(c.Request.Context(), usecase.PayInput{
+		FromUserID:     userID,
+		ShipmentID:     shipmentID,
+		Amount:         req.Amount,
+		IdempotencyKey: idempotencyKey,
+	})
+	if err != nil {
+		if err.Error() == "insufficient balance" {
+			response.Err(c, http.StatusUnprocessableEntity, "WAL-002", err.Error())
+			return
+		}
+		response.Err(c, http.StatusUnprocessableEntity, "WAL-001", err.Error())
+		return
+	}
+
+	h.log.Info("audit: wallet.pay",
+		zap.String("user_id", userID.String()),
+		zap.String("shipment_id", req.ShipmentID),
+		zap.String("tx_id", tx.ID.String()),
+		zap.String("amount", tx.Amount),
+		zap.String("balance_after", tx.BalanceAfter),
+		zap.String("idempotency_key", idempotencyKey),
+	)
+	response.OK(c, transactionJSON(tx))
 }
 
 // GET /api/v1/wallet/transactions — cursor-paginated transaction history.

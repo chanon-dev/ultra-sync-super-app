@@ -2,9 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.dart';
+
+// Pass --dart-define=MAPS_API_KEY=<key> at build time to enable the live map.
+const String _mapsApiKey = String.fromEnvironment('MAPS_API_KEY');
 
 class TrackingPage extends StatefulWidget {
   final String shipmentId;
@@ -198,11 +202,81 @@ class _MapPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: 220,
+        child: _mapsApiKey.isNotEmpty
+            ? _LiveMap(shipment: shipment)
+            : _MapFallback(shipment: shipment),
+      ),
+    );
+  }
+}
+
+class _LiveMap extends StatefulWidget {
+  final Shipment shipment;
+  const _LiveMap({required this.shipment});
+
+  @override
+  State<_LiveMap> createState() => _LiveMapState();
+}
+
+class _LiveMapState extends State<_LiveMap> {
+  GoogleMapController? _controller;
+
+  Set<Marker> get _markers => {
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: LatLng(
+            widget.shipment.pickupGeo.latitude,
+            widget.shipment.pickupGeo.longitude,
+          ),
+          infoWindow: const InfoWindow(title: 'Pickup'),
+        ),
+        Marker(
+          markerId: const MarkerId('dropoff'),
+          position: LatLng(
+            widget.shipment.dropoffGeo.latitude,
+            widget.shipment.dropoffGeo.longitude,
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueRed),
+          infoWindow: const InfoWindow(title: 'Dropoff'),
+        ),
+      };
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pickup = widget.shipment.pickupGeo;
+    return GoogleMap(
+      initialCameraPosition: CameraPosition(
+        target: LatLng(pickup.latitude, pickup.longitude),
+        zoom: 13,
+      ),
+      markers: _markers,
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      onMapCreated: (c) => _controller = c,
+    );
+  }
+}
+
+class _MapFallback extends StatelessWidget {
+  final Shipment shipment;
+  const _MapFallback({required this.shipment});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      height: 220,
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withOpacity(0.3)),
       ),
       child: Stack(
@@ -222,7 +296,7 @@ class _MapPlaceholder extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Add MAPS_API_KEY to enable',
+                  'Build with --dart-define=MAPS_API_KEY=<key>',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.onSurface,
                       ),
