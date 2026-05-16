@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logistics
+  namespace: ultra-sync
+  labels:
+    app: logistics
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logistics
+  template:
+    metadata:
+      labels:
+        app: logistics
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: logistics
+          image: ghcr.io/chanon/ultra-sync/logistics:latest
+          ports:
+            - containerPort: 8082
+              name: http
+          env:
+            - name: LOGISTICS_DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: logistics-secrets
+                  key: db-dsn
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: logistics-secrets
+                  key: redis-url
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger.ultra-sync.svc.cluster.local:4318"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 150m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

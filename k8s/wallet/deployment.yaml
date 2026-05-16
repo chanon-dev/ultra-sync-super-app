@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet
+  namespace: ultra-sync
+  labels:
+    app: wallet
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: wallet
+  template:
+    metadata:
+      labels:
+        app: wallet
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: wallet
+          image: ghcr.io/chanon/ultra-sync/wallet:latest
+          ports:
+            - containerPort: 8083
+              name: http
+          env:
+            - name: WALLET_DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: wallet-secrets
+                  key: db-dsn
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger.ultra-sync.svc.cluster.local:4318"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8083
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8083
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

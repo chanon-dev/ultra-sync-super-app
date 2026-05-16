@@ -1,0 +1,124 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+
+env:
+  FLUTTER_VERSION: '3.22.x'
+
+jobs:
+  # ── Analyze & Test ──────────────────────────────────────────────────────────
+  test:
+    name: Test & Analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Dart analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Coverage gate (>= 80%)
+        run: |
+          total=$(grep -oP '(?<=LF:)\d+' coverage/lcov.info | awk '{s+=$1} END {print s}')
+          hit=$(grep -oP '(?<=LH:)\d+' coverage/lcov.info | awk '{s+=$1} END {print s}')
+          pct=$(awk "BEGIN { printf \"%.1f\", ($hit/$total)*100 }")
+          echo "Coverage: ${pct}%"
+          awk "BEGIN { if ($pct < 80) exit 1 }"
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-coverage
+          path: frontend/coverage/lcov.info
+
+  # ── Build Android ───────────────────────────────────────────────────────────
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release --dart-define=API_URL=${{ vars.API_URL || 'https://api.ultra-sync.example.com' }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultra-sync-release.apk
+          path: frontend/build/app/outputs/flutter-apk/app-release.apk
+
+  # ── Build iOS ───────────────────────────────────────────────────────────────
+  build-ios:
+    name: Build iOS (no-codesign)
+    runs-on: macos-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS (no codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultra-sync-ios.app
+          path: frontend/build/ios/iphoneos/Runner.app

@@ -1,0 +1,63 @@
+{{- $svc := .Values.wallet -}}
+{{- $g   := .Values.global -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet
+  namespace: {{ $g.namespace }}
+  labels:
+    {{- include "ultra-sync.labels" . | nindent 4 }}
+    app: wallet
+spec:
+  replicas: {{ $svc.replicaCount }}
+  selector:
+    matchLabels:
+      app: wallet
+  template:
+    metadata:
+      labels:
+        app: wallet
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: wallet
+          image: {{ include "ultra-sync.image" (dict "registry" $g.imageRegistry "image" $svc.image "tag" $g.imageTag) }}
+          ports:
+            - containerPort: {{ $svc.port }}
+              name: http
+          env:
+            - name: WALLET_DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svc.secrets.existingSecret }}
+                  key: {{ $svc.secrets.dbDsnKey }}
+            {{- include "ultra-sync.otelEnv" . | nindent 12 }}
+          livenessProbe:
+            httpGet: { path: /health, port: {{ $svc.port }} }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health, port: {{ $svc.port }} }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources: {{- toYaml $svc.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-svc
+  namespace: {{ $g.namespace }}
+  labels:
+    {{- include "ultra-sync.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: wallet
+  ports:
+    - name: http
+      port: {{ $svc.port }}
+      targetPort: {{ $svc.port }}
+  type: ClusterIP
