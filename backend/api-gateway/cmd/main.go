@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
+
 	"github.com/chanon/ultra-sync/api-gateway/internal/middleware"
 	"github.com/chanon/ultra-sync/api-gateway/internal/proxy"
 	"github.com/chanon/ultra-sync/pkg/logger"
@@ -23,6 +25,8 @@ import (
 )
 
 func main() {
+	_ = godotenv.Load()
+
 	env := getEnv("APP_ENV", "development")
 	log := logger.Must(env)
 	defer log.Sync() //nolint:errcheck

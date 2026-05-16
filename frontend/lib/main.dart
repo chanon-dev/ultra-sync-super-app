@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:ultra_sync/core/di/injection.dart';
 import 'package:ultra_sync/core/router/app_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // .env is optional — missing file is fine in CI/prod.
+  await dotenv.load(fileName: '.env').catchError((_) {});
   configureDependencies();
   runApp(const UltraSyncApp());
 }

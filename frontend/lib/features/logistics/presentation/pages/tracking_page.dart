@@ -2,13 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.dart';
 
-// Pass --dart-define=MAPS_API_KEY=<key> at build time to enable the live map.
-const String _mapsApiKey = String.fromEnvironment('MAPS_API_KEY');
+// Set MAPS_API_KEY in .env (local) or pass --dart-define=MAPS_API_KEY=<key> (CI/prod).
+String get _mapsApiKey =>
+    dotenv.env['MAPS_API_KEY'] ??
+    const String.fromEnvironment('MAPS_API_KEY');
 
 class TrackingPage extends StatefulWidget {
   final String shipmentId;

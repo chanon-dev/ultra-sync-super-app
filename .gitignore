@@ -25,6 +25,7 @@ frontend/lib/**/*.freezed.dart
 # Secrets / Env
 **/.env
 **/.env.*
+!**/env.example
 **/*.pem
 **/*.key
 **/vault-token
