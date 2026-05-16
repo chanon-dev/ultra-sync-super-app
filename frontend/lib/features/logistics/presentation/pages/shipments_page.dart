@@ -96,7 +96,12 @@ class _ShipmentCard extends StatelessWidget {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => context.push('/logistics/track/${shipment.id}'),
+        onTap: () async {
+          await context.push('/logistics/track/${shipment.id}');
+          if (context.mounted) {
+            context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested());
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

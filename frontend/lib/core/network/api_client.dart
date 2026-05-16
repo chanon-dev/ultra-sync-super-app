@@ -48,9 +48,13 @@ class _AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await storage.read(key: 'access_token');
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
+    try {
+      final token = await storage.read(key: 'access_token');
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
+    } catch (_) {
+      // Secure storage unavailable (e.g. corrupted IndexedDB on web) — proceed unauthenticated.
     }
     handler.next(options);
   }

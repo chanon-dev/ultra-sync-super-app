@@ -68,7 +68,9 @@ func main() {
 	}
 
 	router := gin.New()
+	router.RedirectTrailingSlash = false
 	router.Use(gin.Recovery())
+	router.Use(corsMiddleware())
 	router.Use(rateLimitMiddleware(rate.NewLimiter(rate.Limit(100), 200)))
 
 	router.GET("/health", func(c *gin.Context) {
@@ -81,8 +83,15 @@ func main() {
 	// Protected routes — JWT verification applied.
 	protected := router.Group("/")
 	protected.Use(middleware.JWT(authPublicKey))
-	protected.Any("/api/v1/shipments/*path", rp.Forward("logistics"))
-	protected.Any("/api/v1/wallet/*path", rp.Forward("wallet"))
+
+	// Register both base path and sub-paths so requests without trailing slash are not 307-redirected.
+	shipmentsGroup := protected.Group("/api/v1/shipments")
+	shipmentsGroup.Any("", rp.Forward("logistics"))
+	shipmentsGroup.Any("/*path", rp.Forward("logistics"))
+
+	walletGroup := protected.Group("/api/v1/wallet")
+	walletGroup.Any("", rp.Forward("wallet"))
+	walletGroup.Any("/*path", rp.Forward("wallet"))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", getEnv("PORT", "8080")),
@@ -168,6 +177,19 @@ func tryFetchKey(ctx context.Context, client *http.Client, endpoint string) (*rs
 		return nil, fmt.Errorf("expected RSA public key, got %T", pub)
 	}
 	return rsaPub, nil
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Idempotency-Key")
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
+	}
 }
 
 func rateLimitMiddleware(limiter *rate.Limiter) gin.HandlerFunc {

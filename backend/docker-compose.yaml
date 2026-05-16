@@ -8,6 +8,7 @@ services:
   authdb:
     image: postgis/postgis:16-3.4-alpine
     container_name: ultra_authdb
+    platform: linux/amd64
     environment:
       POSTGRES_DB: authdb
       POSTGRES_USER: authuser
@@ -26,6 +27,7 @@ services:
   logisticsdb:
     image: postgis/postgis:16-3.4-alpine
     container_name: ultra_logisticsdb
+    platform: linux/amd64
     environment:
       POSTGRES_DB: logisticsdb
       POSTGRES_USER: logisticsuser

@@ -14,10 +14,6 @@ class BiometricService {
   Future<bool> authenticate() async {
     return _auth.authenticate(
       localizedReason: 'Authenticate to access Ultra-Sync',
-      options: const AuthenticationOptions(
-        biometricOnly: false,
-        stickyAuth: true,
-      ),
     );
   }
 }

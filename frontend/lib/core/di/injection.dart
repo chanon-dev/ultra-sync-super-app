@@ -11,7 +11,12 @@ final getIt = GetIt.instance;
 @InjectableInit()
 void configureDependencies({String env = 'dev'}) {
   getIt.registerLazySingleton<FlutterSecureStorage>(
-    () => const FlutterSecureStorage(),
+    () => const FlutterSecureStorage(
+      webOptions: WebOptions(
+        dbName: 'UltraSync',
+        publicKey: 'UltraSyncPublicKey',
+      ),
+    ),
   );
   getIt.registerLazySingleton<ApiClient>(
     () => ApiClient(

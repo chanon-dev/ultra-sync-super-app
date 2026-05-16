@@ -10,7 +10,11 @@
       "Bash(GONOSUMDB='*' go build github.com/chanon/ultra-sync/services/logistics/...)",
       "Bash(flutter analyze *)",
       "Bash(which flutter *)",
-      "Read(//opt/homebrew/bin/**)"
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(curl -L \"https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip\" -o inter.zip)",
+      "Bash(unzip -j inter.zip \"Inter Desktop/Inter-Regular.otf\" \"Inter Desktop/Inter-Medium.otf\" \"Inter Desktop/Inter-SemiBold.otf\" \"Inter Desktop/Inter-Bold.otf\" -d .)",
+      "Bash(rm inter.zip)",
+      "Bash(unzip -l inter.zip)"
     ]
   }
 }
