@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/di/injection.dart';
+import 'package:ultra_sync/core/router/main_shell.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ultra_sync/features/auth/presentation/pages/home_page.dart';
 import 'package:ultra_sync/features/auth/presentation/pages/login_page.dart';
@@ -13,6 +14,7 @@ import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.d
 import 'package:ultra_sync/features/logistics/presentation/pages/create_shipment_page.dart';
 import 'package:ultra_sync/features/logistics/presentation/pages/shipments_page.dart';
 import 'package:ultra_sync/features/logistics/presentation/pages/tracking_page.dart';
+import 'package:ultra_sync/features/profile/presentation/pages/profile_page.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:ultra_sync/features/wallet/presentation/pages/qr_receive_page.dart';
 import 'package:ultra_sync/features/wallet/presentation/pages/qr_scan_page.dart';
@@ -36,48 +38,76 @@ GoRouter buildRouter(AuthBloc authBloc) {
         path: '/register',
         builder: (_, __) => const RegisterPage(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (_, __) => const HomePage(),
-      ),
-      ShellRoute(
-        builder: (context, state, child) => BlocProvider(
-          create: (_) => getIt<ShipmentsBloc>(),
-          child: child,
+
+      // Main shell — provides both BLoCs to all tabs + sub-routes
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => getIt<ShipmentsBloc>()),
+            BlocProvider(create: (_) => getIt<WalletBloc>()),
+          ],
+          child: MainShell(navigationShell: navigationShell),
         ),
-        routes: [
-          GoRoute(
-            path: '/logistics',
-            builder: (_, __) => const ShipmentsPage(),
+        branches: [
+          // Tab 0 — Home
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (_, __) => const HomePage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/logistics/create',
-            builder: (_, __) => const CreateShipmentPage(),
+
+          // Tab 1 — Wallet
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/wallet',
+                builder: (_, __) => const WalletPage(),
+                routes: [
+                  GoRoute(
+                    path: 'qr',
+                    builder: (_, __) => const QrReceivePage(),
+                  ),
+                  GoRoute(
+                    path: 'scan',
+                    builder: (_, __) => const QrScanPage(),
+                  ),
+                ],
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/logistics/track/:id',
-            builder: (_, state) =>
-                TrackingPage(shipmentId: state.pathParameters['id']!),
+
+          // Tab 2 — Logistics / Activity
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/logistics',
+                builder: (_, __) => const ShipmentsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'create',
+                    builder: (_, __) => const CreateShipmentPage(),
+                  ),
+                  GoRoute(
+                    path: 'track/:id',
+                    builder: (_, state) =>
+                        TrackingPage(shipmentId: state.pathParameters['id']!),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
-      ShellRoute(
-        builder: (context, state, child) => BlocProvider(
-          create: (_) => getIt<WalletBloc>(),
-          child: child,
-        ),
-        routes: [
-          GoRoute(
-            path: '/wallet',
-            builder: (_, __) => const WalletPage(),
-          ),
-          GoRoute(
-            path: '/wallet/qr',
-            builder: (_, __) => const QrReceivePage(),
-          ),
-          GoRoute(
-            path: '/wallet/scan',
-            builder: (_, __) => const QrScanPage(),
+
+          // Tab 3 — Profile
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (_, __) => const ProfilePage(),
+              ),
+            ],
           ),
         ],
       ),

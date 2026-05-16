@@ -13,77 +13,189 @@ class ShipmentsPage extends StatefulWidget {
 }
 
 class _ShipmentsPageState extends State<ShipmentsPage> {
+  ShipmentStatus? _filter;
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
   @override
   void initState() {
     super.initState();
     context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested());
+    _searchCtrl.addListener(() => setState(() => _query = _searchCtrl.text));
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<Shipment> _filtered(List<Shipment> all) {
+    var list = _filter == null ? all : all.where((s) => s.status == _filter).toList();
+    if (_query.isNotEmpty) {
+      list = list.where((s) => s.orderNo.toLowerCase().contains(_query.toLowerCase())).toList();
+    }
+    return list;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shipments'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () =>
-                context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested()),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/logistics/create'),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New Shipment', style: TextStyle(color: Colors.white)),
-      ),
       body: BlocConsumer<ShipmentsBloc, ShipmentsState>(
         listener: (context, state) {
           if (state is ShipmentCreated) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text('Shipment ${state.shipment.orderNo} created!'),
-              backgroundColor: AppColors.secondary,
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ));
             context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested());
           }
         },
         builder: (context, state) {
-          if (state is ShipmentsLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-          if (state is ShipmentsError) {
-            return _ErrorView(message: state.message, onRetry: () {
-              context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested());
-            });
-          }
-          if (state is ShipmentsLoaded) {
-            if (state.shipments.isEmpty) {
-              return const _EmptyView();
-            }
-            return _ShipmentList(shipments: state.shipments);
-          }
-          return const SizedBox.shrink();
+          return SafeArea(
+            child: Column(
+              children: [
+                _TopBar(
+                  searchCtrl: _searchCtrl,
+                  onRefresh: () =>
+                      context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested()),
+                ),
+                _FilterRow(
+                  selected: _filter,
+                  onSelect: (f) => setState(() => _filter = f),
+                ),
+                Expanded(child: _Body(state: state, filtered: _filtered)),
+              ],
+            ),
+          );
+        },
+      ),
+      floatingActionButton: _NewShipmentFab(),
+    );
+  }
+}
+
+class _TopBar extends StatelessWidget {
+  final TextEditingController searchCtrl;
+  final VoidCallback onRefresh;
+
+  const _TopBar({required this.searchCtrl, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Shipments',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppColors.onBackground,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.onSurface),
+            onPressed: onRefresh,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterRow extends StatelessWidget {
+  final ShipmentStatus? selected;
+  final ValueChanged<ShipmentStatus?> onSelect;
+
+  const _FilterRow({required this.selected, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    const filters = [
+      (null, 'All'),
+      (ShipmentStatus.pending, 'Pending'),
+      (ShipmentStatus.shipping, 'In Transit'),
+      (ShipmentStatus.delivered, 'Delivered'),
+    ];
+
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemCount: filters.length,
+        itemBuilder: (context, i) {
+          final (status, label) = filters[i];
+          final isSelected = selected == status;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            child: GestureDetector(
+              onTap: () => onSelect(status),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primary.withValues(alpha:0.15)
+                      : AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : AppColors.divider,
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? AppColors.primary : AppColors.onSurface,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          );
         },
       ),
     );
   }
 }
 
-class _ShipmentList extends StatelessWidget {
-  final List<Shipment> shipments;
-  const _ShipmentList({required this.shipments});
+class _Body extends StatelessWidget {
+  final ShipmentsState state;
+  final List<Shipment> Function(List<Shipment>) filtered;
+
+  const _Body({required this.state, required this.filtered});
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: shipments.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, i) => _ShipmentCard(shipment: shipments[i]),
-    );
+    if (state is ShipmentsLoading) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+    if (state is ShipmentsError) {
+      return _ErrorView(
+        message: (state as ShipmentsError).message,
+        onRetry: () =>
+            context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested()),
+      );
+    }
+    if (state is ShipmentsLoaded) {
+      final list = filtered((state as ShipmentsLoaded).shipments);
+      if (list.isEmpty) return const _EmptyView();
+      return ListView.separated(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+        itemCount: list.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, i) => _ShipmentCard(shipment: list[i]),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }
 
@@ -93,55 +205,69 @@ class _ShipmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        onTap: () async {
-          await context.push('/logistics/track/${shipment.id}');
-          if (context.mounted) {
-            context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested());
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    shipment.orderNo,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.onBackground,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  _StatusBadge(status: shipment.status),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _GeoRow(
-                icon: Icons.my_location_rounded,
-                label: 'Pickup',
-                geo: shipment.pickupGeo,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: 8),
-              _GeoRow(
-                icon: Icons.location_on_rounded,
-                label: 'Dropoff',
-                geo: shipment.dropoffGeo,
-                color: AppColors.error,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _formatDate(shipment.createdAt),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.onSurface,
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () async {
+            await context.push('/logistics/track/${shipment.id}');
+            if (context.mounted) {
+              context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested());
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha:0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.local_shipping_outlined,
+                          color: AppColors.primary, size: 20),
                     ),
-              ),
-            ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            shipment.orderNo,
+                            style: const TextStyle(
+                              color: AppColors.onBackground,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                          Text(
+                            _formatDate(shipment.createdAt),
+                            style: const TextStyle(
+                              color: AppColors.onSurface,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _StatusBadge(status: shipment.status),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _RouteVisual(shipment: shipment),
+              ],
+            ),
           ),
         ),
       ),
@@ -149,34 +275,58 @@ class _ShipmentCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime dt) {
-    return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    return '${dt.day}/${dt.month}/${dt.year}  '
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
 
-class _GeoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final GeoPoint geo;
-  final Color color;
-
-  const _GeoRow({
-    required this.icon,
-    required this.label,
-    required this.geo,
-    required this.color,
-  });
+class _RouteVisual extends StatelessWidget {
+  final Shipment shipment;
+  const _RouteVisual({required this.shipment});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: color, size: 16),
-        const SizedBox(width: 8),
-        Text(
-          '$label: ${geo.latitude.toStringAsFixed(4)}, ${geo.longitude.toStringAsFixed(4)}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.onSurface,
+        Column(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
               ),
+            ),
+            Container(width: 2, height: 24, color: AppColors.divider),
+            Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: AppColors.error,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${shipment.pickupGeo.latitude.toStringAsFixed(4)}, '
+                '${shipment.pickupGeo.longitude.toStringAsFixed(4)}',
+                style: const TextStyle(color: AppColors.onSurface, fontSize: 12),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                '${shipment.dropoffGeo.latitude.toStringAsFixed(4)}, '
+                '${shipment.dropoffGeo.longitude.toStringAsFixed(4)}',
+                style: const TextStyle(color: AppColors.onSurface, fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -189,10 +339,9 @@ class _StatusBadge extends StatelessWidget {
 
   Color get _color => switch (status) {
         ShipmentStatus.pending => AppColors.warning,
-        ShipmentStatus.assigned => AppColors.primary,
-        ShipmentStatus.pickedUp => AppColors.primary,
-        ShipmentStatus.shipping => AppColors.secondary,
-        ShipmentStatus.delivered => AppColors.secondary,
+        ShipmentStatus.assigned || ShipmentStatus.pickedUp => AppColors.info,
+        ShipmentStatus.shipping => AppColors.primary,
+        ShipmentStatus.delivered => AppColors.success,
         ShipmentStatus.cancelled => AppColors.error,
       };
 
@@ -201,16 +350,51 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: _color.withOpacity(0.15),
+        color: _color.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _color.withOpacity(0.4)),
+        border: Border.all(color: _color.withValues(alpha:0.35)),
       ),
       child: Text(
         status.label,
-        style: TextStyle(
-          color: _color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+        style: TextStyle(color: _color, fontSize: 11, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _NewShipmentFab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: AppGradients.primary,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppShadows.primary,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push('/logistics/create'),
+          borderRadius: BorderRadius.circular(16),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'New Shipment',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -226,21 +410,31 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.local_shipping_outlined,
-              color: AppColors.onSurface, size: 64),
-          const SizedBox(height: 16),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.local_shipping_outlined,
+                color: AppColors.onSurface, size: 36),
+          ),
+          const SizedBox(height: 20),
           Text(
             'No shipments yet',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.onSurface,
+                  color: AppColors.onBackground,
+                  fontWeight: FontWeight.w600,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
             'Tap + to create your first shipment',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.onSurface,
-                ),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.onSurface),
           ),
         ],
       ),
@@ -256,17 +450,35 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
-          const SizedBox(height: 16),
-          Text(message,
-              style: const TextStyle(color: AppColors.onSurface),
-              textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha:0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline_rounded,
+                  color: AppColors.error, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text(message,
+                style: const TextStyle(color: AppColors.onSurface),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 140,
+              child: ElevatedButton(
+                onPressed: onRetry,
+                child: const Text('Try Again'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

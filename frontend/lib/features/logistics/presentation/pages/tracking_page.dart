@@ -10,8 +10,7 @@ import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.d
 
 // Set MAPS_API_KEY in .env (local) or pass --dart-define=MAPS_API_KEY=<key> (CI/prod).
 String get _mapsApiKey =>
-    dotenv.env['MAPS_API_KEY'] ??
-    const String.fromEnvironment('MAPS_API_KEY');
+    dotenv.env['MAPS_API_KEY'] ?? const String.fromEnvironment('MAPS_API_KEY');
 
 class TrackingPage extends StatefulWidget {
   final String shipmentId;
@@ -33,11 +32,8 @@ class _TrackingPageState extends State<TrackingPage> {
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _load());
   }
 
-  void _load() {
-    context
-        .read<ShipmentsBloc>()
-        .add(ShipmentDetailRequested(widget.shipmentId));
-  }
+  void _load() =>
+      context.read<ShipmentsBloc>().add(ShipmentDetailRequested(widget.shipmentId));
 
   @override
   void dispose() {
@@ -50,6 +46,10 @@ class _TrackingPageState extends State<TrackingPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Live Tracking'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -65,13 +65,10 @@ class _TrackingPageState extends State<TrackingPage> {
             );
           }
           if (state is ShipmentDetail) {
-            return _TrackingContent(shipment: state.shipment);
+            return _TrackingBody(shipment: state.shipment);
           }
           if (state is ShipmentsError) {
-            return Center(
-              child: Text(state.message,
-                  style: const TextStyle(color: AppColors.error)),
-            );
+            return _ErrorView(state.message);
           }
           return const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
@@ -89,126 +86,98 @@ class _LiveBadge extends StatefulWidget {
 
 class _LiveBadgeState extends State<_LiveBadge>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+  late final AnimationController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat(reverse: true);
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 1))
+      ..repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FadeTransition(
-          opacity: _controller,
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: AppColors.secondary,
-              shape: BoxShape.circle,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FadeTransition(
+            opacity: _ctrl,
+            child: Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                color: AppColors.success,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 6),
-        const Text(
-          'LIVE',
-          style: TextStyle(
-            color: AppColors.secondary,
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-            letterSpacing: 1,
+          const SizedBox(width: 6),
+          const Text(
+            'LIVE',
+            style: TextStyle(
+              color: AppColors.success,
+              fontWeight: FontWeight.w800,
+              fontSize: 11,
+              letterSpacing: 1,
+            ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TrackingContent extends StatelessWidget {
-  final Shipment shipment;
-  const _TrackingContent({required this.shipment});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _OrderHeader(shipment: shipment),
-          const SizedBox(height: 20),
-          _MapPlaceholder(shipment: shipment),
-          const SizedBox(height: 20),
-          _RouteCard(shipment: shipment),
-          const SizedBox(height: 20),
-          _StatusTimeline(status: shipment.status),
         ],
       ),
     );
   }
 }
 
-class _OrderHeader extends StatelessWidget {
+class _TrackingBody extends StatelessWidget {
   final Shipment shipment;
-  const _OrderHeader({required this.shipment});
+  const _TrackingBody({required this.shipment});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
+        _MapSection(shipment: shipment),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                shipment.orderNo,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.onBackground,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                shipment.driverId != null
-                    ? 'Driver assigned'
-                    : 'Awaiting driver',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.onSurface,
-                    ),
-              ),
-            ],
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _OrderHeaderCard(shipment: shipment),
+                const SizedBox(height: 16),
+                _RouteCard(shipment: shipment),
+                const SizedBox(height: 16),
+                _StatusTimeline(status: shipment.status),
+              ],
+            ),
           ),
         ),
-        _StatusChip(shipment.status),
       ],
     );
   }
 }
 
-class _MapPlaceholder extends StatelessWidget {
+class _MapSection extends StatelessWidget {
   final Shipment shipment;
-  const _MapPlaceholder({required this.shipment});
+  const _MapSection({required this.shipment});
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
       child: SizedBox(
-        height: 220,
+        height: 240,
         child: _mapsApiKey.isNotEmpty
             ? _LiveMap(shipment: shipment)
             : _MapFallback(shipment: shipment),
@@ -243,15 +212,18 @@ class _LiveMapState extends State<_LiveMap> {
             widget.shipment.dropoffGeo.latitude,
             widget.shipment.dropoffGeo.longitude,
           ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueRed),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           infoWindow: const InfoWindow(title: 'Dropoff'),
         ),
       };
 
   @override
   void dispose() {
-    _controller?.dispose();
+    try {
+      _controller?.dispose();
+    } catch (_) {
+      // GoogleMapController may assert if user navigates away before buildView completes.
+    }
     super.dispose();
   }
 
@@ -278,30 +250,28 @@ class _MapFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-      ),
+      color: AppColors.surfaceVariant,
       child: Stack(
         children: [
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.map_outlined,
-                    color: AppColors.onSurface, size: 48),
+                Icon(Icons.map_outlined, color: AppColors.onSurface, size: 44),
                 const SizedBox(height: 8),
                 Text(
-                  'Google Maps',
+                  'Map Preview',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppColors.onSurface,
                       ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Build with --dart-define=MAPS_API_KEY=<key>',
+                  '--dart-define=MAPS_API_KEY=<key>',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.onSurface,
+                        color: AppColors.onSurface.withValues(alpha: 0.6),
+                        fontFamily: 'monospace',
+                        fontSize: 11,
                       ),
                 ),
               ],
@@ -311,19 +281,17 @@ class _MapFallback extends StatelessWidget {
             top: 12,
             left: 12,
             child: _GeoTag(
-              icon: Icons.my_location_rounded,
-              color: AppColors.primary,
-              geo: shipment.pickupGeo,
-            ),
+                icon: Icons.my_location_rounded,
+                color: AppColors.primary,
+                geo: shipment.pickupGeo),
           ),
           Positioned(
             bottom: 12,
             right: 12,
             child: _GeoTag(
-              icon: Icons.location_on_rounded,
-              color: AppColors.error,
-              geo: shipment.dropoffGeo,
-            ),
+                icon: Icons.location_on_rounded,
+                color: AppColors.error,
+                geo: shipment.dropoffGeo),
           ),
         ],
       ),
@@ -340,24 +308,76 @@ class _GeoTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.5)),
+        color: AppColors.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: color, size: 14),
-          const SizedBox(width: 4),
+          const SizedBox(width: 5),
           Text(
             '${geo.latitude.toStringAsFixed(3)}, ${geo.longitude.toStringAsFixed(3)}',
             style: const TextStyle(
-                color: AppColors.onBackground,
-                fontSize: 11,
-                fontWeight: FontWeight.w500),
+                color: AppColors.onBackground, fontSize: 11, fontWeight: FontWeight.w600),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderHeaderCard extends StatelessWidget {
+  final Shipment shipment;
+  const _OrderHeaderCard({required this.shipment});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              gradient: AppGradients.logistics,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.local_shipping_outlined,
+                color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  shipment.orderNo,
+                  style: const TextStyle(
+                    color: AppColors.onBackground,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  shipment.driverId != null ? 'Driver assigned' : 'Awaiting driver',
+                  style: const TextStyle(color: AppColors.onSurface, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          _StatusChip(shipment.status),
         ],
       ),
     );
@@ -375,6 +395,7 @@ class _RouteCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
       ),
       child: Column(
         children: [
@@ -385,14 +406,10 @@ class _RouteCard extends StatelessWidget {
             geo: shipment.pickupGeo,
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
             child: Row(
               children: [
-                Container(
-                  width: 2,
-                  height: 24,
-                  color: AppColors.onSurface.withOpacity(0.2),
-                ),
+                Container(width: 2, height: 20, color: AppColors.divider),
               ],
             ),
           ),
@@ -431,16 +448,14 @@ class _RouteStop extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.onSurface)),
+                  style: const TextStyle(color: AppColors.onSurface, fontSize: 11)),
               Text(
-                '${geo.latitude.toStringAsFixed(6)}, ${geo.longitude.toStringAsFixed(6)}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.onBackground,
-                      fontWeight: FontWeight.w500,
-                    ),
+                '${geo.latitude.toStringAsFixed(5)}, ${geo.longitude.toStringAsFixed(5)}',
+                style: const TextStyle(
+                  color: AppColors.onBackground,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -455,40 +470,44 @@ class _StatusTimeline extends StatelessWidget {
   const _StatusTimeline({required this.status});
 
   static const _steps = [
-    ShipmentStatus.pending,
-    ShipmentStatus.assigned,
-    ShipmentStatus.pickedUp,
-    ShipmentStatus.shipping,
-    ShipmentStatus.delivered,
+    (ShipmentStatus.pending, Icons.schedule_rounded, 'Order Placed'),
+    (ShipmentStatus.assigned, Icons.person_pin_rounded, 'Driver Assigned'),
+    (ShipmentStatus.pickedUp, Icons.inventory_2_outlined, 'Picked Up'),
+    (ShipmentStatus.shipping, Icons.local_shipping_outlined, 'In Transit'),
+    (ShipmentStatus.delivered, Icons.check_circle_outline_rounded, 'Delivered'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final currentIdx = _steps.indexOf(status);
+    final currentIdx =
+        _steps.indexWhere((s) => s.$1 == status).clamp(0, _steps.length - 1);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Delivery Progress',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.onBackground,
-                  fontWeight: FontWeight.w600,
-                ),
+            style: TextStyle(
+              color: AppColors.onBackground,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           ...List.generate(_steps.length, (i) {
-            final step = _steps[i];
+            final (_, icon, label) = _steps[i];
             final isDone = currentIdx >= i;
             final isActive = currentIdx == i;
             return _TimelineStep(
-              label: step.label,
+              icon: icon,
+              label: label,
               isDone: isDone,
               isActive: isActive,
               isLast: i == _steps.length - 1,
@@ -501,11 +520,13 @@ class _StatusTimeline extends StatelessWidget {
 }
 
 class _TimelineStep extends StatelessWidget {
+  final IconData icon;
   final String label;
   final bool isDone;
   final bool isActive;
   final bool isLast;
   const _TimelineStep({
+    required this.icon,
     required this.label,
     required this.isDone,
     required this.isActive,
@@ -514,43 +535,59 @@ class _TimelineStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDone ? AppColors.secondary : AppColors.onSurface;
+    final activeColor = isActive ? AppColors.primary : AppColors.success;
+    final dotColor = isDone ? activeColor : AppColors.surfaceVariant;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           children: [
-            Container(
-              width: 20,
-              height: 20,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
-                color: isDone ? color : Colors.transparent,
-                border: Border.all(color: color, width: 2),
+                color: dotColor,
+                border: Border.all(
+                  color: isDone ? dotColor : AppColors.divider,
+                  width: 2,
+                ),
                 shape: BoxShape.circle,
               ),
               child: isDone
-                  ? const Icon(Icons.check, color: Colors.white, size: 12)
+                  ? Icon(
+                      isActive ? icon : Icons.check_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    )
                   : null,
             ),
             if (!isLast)
               Container(
                 width: 2,
-                height: 28,
+                height: 32,
+                margin: const EdgeInsets.symmetric(vertical: 4),
                 color: isDone
-                    ? AppColors.secondary.withOpacity(0.4)
-                    : AppColors.onSurface.withOpacity(0.2),
+                    ? AppColors.success.withValues(alpha: 0.3)
+                    : AppColors.divider,
               ),
           ],
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Padding(
-          padding: const EdgeInsets.only(top: 2),
+          padding: const EdgeInsets.only(top: 4),
           child: Text(
             label,
             style: TextStyle(
-              color: isActive ? AppColors.secondary : color,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              color: isActive
+                  ? AppColors.primary
+                  : isDone
+                      ? AppColors.onBackground
+                      : AppColors.onSurface,
+              fontWeight:
+                  isActive || isDone ? FontWeight.w600 : FontWeight.w400,
+              fontSize: 14,
             ),
           ),
         ),
@@ -565,9 +602,9 @@ class _StatusChip extends StatelessWidget {
 
   Color get _color => switch (status) {
         ShipmentStatus.pending => AppColors.warning,
-        ShipmentStatus.assigned || ShipmentStatus.pickedUp => AppColors.primary,
-        ShipmentStatus.shipping => AppColors.secondary,
-        ShipmentStatus.delivered => AppColors.secondary,
+        ShipmentStatus.assigned || ShipmentStatus.pickedUp => AppColors.info,
+        ShipmentStatus.shipping => AppColors.primary,
+        ShipmentStatus.delivered => AppColors.success,
         ShipmentStatus.cancelled => AppColors.error,
       };
 
@@ -576,15 +613,31 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: _color.withOpacity(0.15),
+        color: _color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _color.withOpacity(0.4)),
+        border: Border.all(color: _color.withValues(alpha: 0.35)),
       ),
       child: Text(
         status.label,
         style: TextStyle(
-            color: _color, fontSize: 12, fontWeight: FontWeight.w700),
+          color: _color,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final String message;
+  const _ErrorView(this.message);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(message,
+          style: const TextStyle(color: AppColors.error), textAlign: TextAlign.center),
     );
   }
 }
