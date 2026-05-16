@@ -58,13 +58,15 @@
 ---
 
 ## 💰 Phase 4: Secure Wallet & Transactions (สัปดาห์ที่ 5)
-- [ ] **4.1 Wallet Microservice**
-    - [ ] ระบบกระเป๋าเงิน (Balance Management).
-    - [ ] Distributed Transactions (Saga Pattern) ระหว่าง Logistics และ Wallet.
-    - [ ] Audit Trail logging สำหรับทุกธุรกรรม.
-- [ ] **4.2 Flutter Wallet Module**
-    - [ ] หน้าจอยอดเงินและประวัติธุรกรรม (Pagination).
-    - [ ] ระบบ QR Code Generator และ Scanner.
+- [x] **4.1 Wallet Microservice**
+    - [x] ระบบกระเป๋าเงิน (Balance Management) — optimistic locking via `version` column, auto-provision on first access.
+    - [x] Idempotency via `X-Idempotency-Key` on topup endpoint (UNIQUE index on `transactions.idempotency_key`).
+    - [ ] Distributed Transactions (Saga Pattern) ระหว่าง Logistics และ Wallet. *(planned for Phase 5 / post-MVP)*
+    - [ ] Audit Trail logging สำหรับทุกธุรกรรม. *(transactions table serves as audit trail; structured log stream deferred)*
+- [x] **4.2 Flutter Wallet Module**
+    - [x] หน้าจอยอดเงินและประวัติธุรกรรม (cursor-based pagination, dark gradient BalanceCard).
+    - [x] Top Up flow — preset chips + TextFormField + idempotency key + BLoC + SnackBar feedback.
+    - [ ] ระบบ QR Code Generator และ Scanner. *(deferred — out of MVP scope)*
 
 ---
 

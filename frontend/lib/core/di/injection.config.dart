@@ -28,6 +28,13 @@ import 'package:ultra_sync/features/logistics/domain/usecases/create_shipment_us
 import 'package:ultra_sync/features/logistics/domain/usecases/get_shipment_usecase.dart';
 import 'package:ultra_sync/features/logistics/domain/usecases/list_shipments_usecase.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.dart';
+import 'package:ultra_sync/features/wallet/data/datasources/wallet_remote_data_source.dart';
+import 'package:ultra_sync/features/wallet/data/repositories/wallet_repository_impl.dart';
+import 'package:ultra_sync/features/wallet/domain/repositories/wallet_repository.dart';
+import 'package:ultra_sync/features/wallet/domain/usecases/get_balance_usecase.dart';
+import 'package:ultra_sync/features/wallet/domain/usecases/list_transactions_usecase.dart';
+import 'package:ultra_sync/features/wallet/domain/usecases/top_up_usecase.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
 
 extension GetItInjectableX on GetIt {
   // ignore: unused_element
@@ -99,6 +106,30 @@ extension GetItInjectableX on GetIt {
         list: gh<ListShipmentsUseCase>(),
         create: gh<CreateShipmentUseCase>(),
         get: gh<GetShipmentUseCase>(),
+      ),
+    );
+
+    // ── Wallet ────────────────────────────────────────────────────────────
+    gh.lazySingleton<WalletRemoteDataSource>(
+      () => WalletRemoteDataSourceImpl(gh<ApiClient>()),
+    );
+    gh.lazySingleton<WalletRepository>(
+      () => WalletRepositoryImpl(gh<WalletRemoteDataSource>()),
+    );
+    gh.lazySingleton<GetBalanceUseCase>(
+      () => GetBalanceUseCase(gh<WalletRepository>()),
+    );
+    gh.lazySingleton<TopUpUseCase>(
+      () => TopUpUseCase(gh<WalletRepository>()),
+    );
+    gh.lazySingleton<ListTransactionsUseCase>(
+      () => ListTransactionsUseCase(gh<WalletRepository>()),
+    );
+    gh.factory<WalletBloc>(
+      () => WalletBloc(
+        getBalance: gh<GetBalanceUseCase>(),
+        topUp: gh<TopUpUseCase>(),
+        listTransactions: gh<ListTransactionsUseCase>(),
       ),
     );
 

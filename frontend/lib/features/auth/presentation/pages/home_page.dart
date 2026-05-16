@@ -82,7 +82,8 @@ class _FeatureGrid extends StatelessWidget {
           label: 'Wallet',
           subtitle: 'Manage funds',
           color: AppColors.secondary,
-          comingSoon: true,
+          comingSoon: false,
+          onTap: () => context.push('/wallet'),
         ),
         _FeatureCard(
           icon: Icons.chat_bubble_outline_rounded,

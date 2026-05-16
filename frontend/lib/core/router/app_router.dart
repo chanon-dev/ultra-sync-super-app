@@ -13,6 +13,8 @@ import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.d
 import 'package:ultra_sync/features/logistics/presentation/pages/create_shipment_page.dart';
 import 'package:ultra_sync/features/logistics/presentation/pages/shipments_page.dart';
 import 'package:ultra_sync/features/logistics/presentation/pages/tracking_page.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:ultra_sync/features/wallet/presentation/pages/wallet_page.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -54,6 +56,18 @@ GoRouter buildRouter(AuthBloc authBloc) {
             path: '/logistics/track/:id',
             builder: (_, state) =>
                 TrackingPage(shipmentId: state.pathParameters['id']!),
+          ),
+        ],
+      ),
+      ShellRoute(
+        builder: (context, state, child) => BlocProvider(
+          create: (_) => getIt<WalletBloc>(),
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: '/wallet',
+            builder: (_, __) => const WalletPage(),
           ),
         ],
       ),

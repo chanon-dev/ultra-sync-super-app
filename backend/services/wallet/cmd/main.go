@@ -11,6 +11,9 @@ import (
 
 	"github.com/chanon/ultra-sync/pkg/logger"
 	"github.com/chanon/ultra-sync/pkg/tracing"
+	"github.com/chanon/ultra-sync/services/wallet/internal/adapter/httphandler"
+	"github.com/chanon/ultra-sync/services/wallet/internal/adapter/postgres"
+	"github.com/chanon/ultra-sync/services/wallet/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -42,7 +45,10 @@ func main() {
 		log.Fatal("ping walletdb", zap.Error(err))
 	}
 
-	// TODO Phase 4: wire WalletUseCase + adapters
+	walletRepo := postgres.NewWalletRepo(dbPool)
+	txRepo := postgres.NewTransactionRepo(dbPool)
+	uc := usecase.New(walletRepo, txRepo)
+	handler := httphandler.New(uc)
 
 	if env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -52,6 +58,7 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "wallet"})
 	})
+	handler.Register(router)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", getEnv("PORT", "8083")),
