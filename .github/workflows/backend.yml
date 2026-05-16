@@ -2,17 +2,17 @@ name: Backend CI
 
 on:
   push:
-    branches: [main]
+    branches: [TEST]
     paths:
-      - 'backend/**'
-      - '.github/workflows/backend.yml'
+      - "backend/**"
+      - ".github/workflows/backend.yml"
   pull_request:
-    branches: [main]
+    branches: [TEST]
     paths:
-      - 'backend/**'
+      - "backend/**"
 
 env:
-  GO_VERSION: '1.22'
+  GO_VERSION: "1.22"
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/ultra-sync
 
