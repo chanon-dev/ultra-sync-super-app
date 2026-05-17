@@ -14,6 +14,7 @@ import (
 
 	"github.com/chanon/ultra-sync/pkg/logger"
 	"github.com/chanon/ultra-sync/pkg/tracing"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/events"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/httphandler"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/postgres"
@@ -106,6 +107,7 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	router := gin.New()
+	router.Use(otelgin.Middleware("logistics-service"))
 	router.Use(gin.Recovery())
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "logistics"})

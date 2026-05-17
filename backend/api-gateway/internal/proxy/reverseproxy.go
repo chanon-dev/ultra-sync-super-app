@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 )
 
@@ -34,9 +35,12 @@ func New(services []ServiceConfig, log *zap.Logger) (*ReverseProxy, error) {
 		}
 
 		proxy := httputil.NewSingleHostReverseProxy(target)
-		proxy.Transport = &http.Transport{
-			ResponseHeaderTimeout: 30 * time.Second,
-		}
+		proxy.Transport = otelhttp.NewTransport(
+			&http.Transport{ResponseHeaderTimeout: 30 * time.Second},
+			otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+				return svc.Name + " " + r.Method + " " + r.URL.Path
+			}),
+		)
 		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 			log.Error("proxy error", zap.String("service", svc.Name), zap.Error(err))
 			w.WriteHeader(http.StatusBadGateway)

@@ -20,9 +20,12 @@ import (
 	"github.com/chanon/ultra-sync/pkg/logger"
 	"github.com/chanon/ultra-sync/pkg/tracing"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 )
+
+const serviceName = "api-gateway"
 
 func main() {
 	_ = godotenv.Load()
@@ -34,7 +37,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	shutdownTracing, err := tracing.Init(ctx, "api-gateway", getEnv("OTLP_ENDPOINT", "localhost:4318"))
+	shutdownTracing, err := tracing.Init(ctx, serviceName, getEnv("OTLP_ENDPOINT", "localhost:4318"))
 	if err != nil {
 		log.Warn("tracing init failed", zap.Error(err))
 	} else {
@@ -69,12 +72,13 @@ func main() {
 
 	router := gin.New()
 	router.RedirectTrailingSlash = false
+	router.Use(otelgin.Middleware(serviceName))
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware())
 	router.Use(rateLimitMiddleware(rate.NewLimiter(rate.Limit(100), 200)))
 
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "api-gateway"})
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": serviceName})
 	})
 
 	// Public routes — no JWT required.
