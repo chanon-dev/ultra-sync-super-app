@@ -6,9 +6,9 @@ import 'package:ultra_sync/features/wallet/domain/entities/wallet.dart';
 import 'package:ultra_sync/features/wallet/domain/usecases/get_balance_usecase.dart';
 import 'package:ultra_sync/features/wallet/domain/usecases/list_transactions_usecase.dart';
 import 'package:ultra_sync/features/wallet/domain/usecases/top_up_usecase.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_state.dart';
 
 part 'wallet_event.dart';
-part 'wallet_state.dart';
 
 @injectable
 class WalletBloc extends Bloc<WalletEvent, WalletState> {
@@ -34,17 +34,15 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
   ) async {
     emit(const WalletLoading());
     final balanceResult = await _getBalance(const NoParams());
-    await balanceResult.fold(
-      (f) async => emit(WalletError(f.message)),
-      (wallet) async {
-        final txResult =
-            await _listTransactions(const ListTransactionsParams());
-        txResult.fold(
-          (_) => emit(WalletLoaded(wallet: wallet, transactions: const [])),
-          (txs) => emit(WalletLoaded(wallet: wallet, transactions: txs)),
-        );
-      },
-    );
+    if (balanceResult.isLeft()) {
+      return emit(WalletError(balanceResult.getLeft().toNullable()!.message));
+    }
+    final wallet = balanceResult.getRight().toNullable()!;
+
+    final txResult = await _listTransactions(const ListTransactionsParams());
+    final transactions = txResult.getRight().toNullable() ?? const <WalletTransaction>[];
+
+    emit(WalletLoaded(wallet: wallet, transactions: transactions));
   }
 
   Future<void> _onTopUp(
@@ -52,28 +50,30 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     Emitter<WalletState> emit,
   ) async {
     emit(const WalletLoading());
-    final result = await _topUp(TopUpParams(
+
+    final topUpResult = await _topUp(TopUpParams(
       amount: event.amount,
       idempotencyKey: event.idempotencyKey,
     ));
-    await result.fold(
-      (f) async => emit(WalletError(f.message)),
-      (tx) async {
-        final balanceResult = await _getBalance(const NoParams());
-        await balanceResult.fold(
-          (f) async => emit(WalletError(f.message)),
-          (wallet) async {
-            final txResult =
-                await _listTransactions(const ListTransactionsParams());
-            txResult.fold(
-              (_) => emit(WalletTopUpSuccess(
-                  transaction: tx, wallet: wallet, transactions: const [])),
-              (txs) => emit(WalletTopUpSuccess(
-                  transaction: tx, wallet: wallet, transactions: txs)),
-            );
-          },
-        );
-      },
-    );
+    if (topUpResult.isLeft()) {
+      return emit(WalletError(topUpResult.getLeft().toNullable()!.message));
+    }
+    final tx = topUpResult.getRight().toNullable()!;
+
+    final balanceResult = await _getBalance(const NoParams());
+    if (balanceResult.isLeft()) {
+      return emit(WalletError(balanceResult.getLeft().toNullable()!.message));
+    }
+    final wallet = balanceResult.getRight().toNullable()!;
+
+    final txResult = await _listTransactions(const ListTransactionsParams());
+    final transactions = txResult.getRight().toNullable() ?? const <WalletTransaction>[];
+
+    emit(WalletLoaded(
+      wallet: wallet,
+      transactions: transactions,
+      topUpJustSucceeded: true,
+      lastTopUp: tx,
+    ));
   }
 }

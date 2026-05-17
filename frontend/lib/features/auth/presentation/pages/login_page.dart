@@ -5,6 +5,7 @@ import 'package:ultra_sync/core/di/injection.dart';
 import 'package:ultra_sync/core/services/biometric_service.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ultra_sync/features/auth/presentation/bloc/auth_state.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/di/injection.dart';
 import 'package:ultra_sync/core/router/app_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
@@ -8,7 +11,16 @@ import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // .env is optional — missing file is fine in CI/prod.
+
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Uncaught error: $error\n$stack');
+    return true;
+  };
+
+  // .env is optional — missing file is fine in CI/prod (use --dart-define instead).
   await dotenv.load(fileName: '.env').catchError((_) {});
   configureDependencies();
   runApp(const UltraSyncApp());
@@ -23,7 +35,7 @@ class UltraSyncApp extends StatefulWidget {
 
 class _UltraSyncAppState extends State<UltraSyncApp> {
   late final AuthBloc _authBloc;
-  late final _router;
+  late final GoRouter _router;
 
   @override
   void initState() {
@@ -45,6 +57,8 @@ class _UltraSyncAppState extends State<UltraSyncApp> {
       child: MaterialApp.router(
         title: 'Ultra-Sync',
         theme: buildAppTheme(),
+        darkTheme: buildDarkAppTheme(),
+        themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         routerConfig: _router,
       ),

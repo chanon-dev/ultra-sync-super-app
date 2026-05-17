@@ -11,6 +11,7 @@ import 'package:ultra_sync/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:ultra_sync/features/auth/domain/usecases/register_usecase.dart';
 import 'package:ultra_sync/core/services/biometric_service.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ultra_sync/features/auth/presentation/bloc/auth_state.dart';
 
 class _MockLogin extends Mock implements LoginUseCase {}
 class _MockRegister extends Mock implements RegisterUseCase {}
@@ -140,7 +141,7 @@ void main() {
       'emits [Unauthenticated] after logout',
       build: () {
         when(() => logout(any()))
-            .thenAnswer((_) async => const Right(null));
+            .thenAnswer((_) async => const Right(unit));
         return buildBloc();
       },
       act: (b) => b.add(const AuthLogoutRequested()),

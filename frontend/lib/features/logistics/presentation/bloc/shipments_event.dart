@@ -39,3 +39,19 @@ class ShipmentDetailRequested extends ShipmentsEvent {
   @override
   List<Object?> get props => [id];
 }
+
+class ShipmentsFilterChanged extends ShipmentsEvent {
+  final ShipmentStatus? filter;
+  const ShipmentsFilterChanged(this.filter);
+
+  @override
+  List<Object?> get props => [filter];
+}
+
+class ShipmentsSearchChanged extends ShipmentsEvent {
+  final String query;
+  const ShipmentsSearchChanged(this.query);
+
+  @override
+  List<Object?> get props => [query];
+}

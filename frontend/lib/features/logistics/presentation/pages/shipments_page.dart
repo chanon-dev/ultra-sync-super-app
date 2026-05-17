@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
+import 'package:ultra_sync/core/utils/date_formatter.dart';
 import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.dart';
+import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_state.dart';
 
 class ShipmentsPage extends StatefulWidget {
   const ShipmentsPage({super.key});
@@ -13,29 +15,21 @@ class ShipmentsPage extends StatefulWidget {
 }
 
 class _ShipmentsPageState extends State<ShipmentsPage> {
-  ShipmentStatus? _filter;
   final _searchCtrl = TextEditingController();
-  String _query = '';
 
   @override
   void initState() {
     super.initState();
     context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested());
-    _searchCtrl.addListener(() => setState(() => _query = _searchCtrl.text));
+    _searchCtrl.addListener(
+      () => context.read<ShipmentsBloc>().add(ShipmentsSearchChanged(_searchCtrl.text)),
+    );
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
-  }
-
-  List<Shipment> _filtered(List<Shipment> all) {
-    var list = _filter == null ? all : all.where((s) => s.status == _filter).toList();
-    if (_query.isNotEmpty) {
-      list = list.where((s) => s.orderNo.toLowerCase().contains(_query.toLowerCase())).toList();
-    }
-    return list;
   }
 
   @override
@@ -54,6 +48,9 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
           }
         },
         builder: (context, state) {
+          final activeFilter =
+              state is ShipmentsLoaded ? state.activeFilter : null;
+
           return SafeArea(
             child: Column(
               children: [
@@ -63,10 +60,11 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
                       context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested()),
                 ),
                 _FilterRow(
-                  selected: _filter,
-                  onSelect: (f) => setState(() => _filter = f),
+                  selected: activeFilter,
+                  onSelect: (f) =>
+                      context.read<ShipmentsBloc>().add(ShipmentsFilterChanged(f)),
                 ),
-                Expanded(child: _Body(state: state, filtered: _filtered)),
+                Expanded(child: _Body(state: state)),
               ],
             ),
           );
@@ -142,7 +140,7 @@ class _FilterRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.primary.withValues(alpha:0.15)
+                      ? AppColors.primary.withValues(alpha: 0.15)
                       : AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
@@ -169,33 +167,29 @@ class _FilterRow extends StatelessWidget {
 
 class _Body extends StatelessWidget {
   final ShipmentsState state;
-  final List<Shipment> Function(List<Shipment>) filtered;
 
-  const _Body({required this.state, required this.filtered});
+  const _Body({required this.state});
 
   @override
   Widget build(BuildContext context) {
-    if (state is ShipmentsLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-    }
-    if (state is ShipmentsError) {
-      return _ErrorView(
-        message: (state as ShipmentsError).message,
-        onRetry: () =>
-            context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested()),
-      );
-    }
-    if (state is ShipmentsLoaded) {
-      final list = filtered((state as ShipmentsLoaded).shipments);
-      if (list.isEmpty) return const _EmptyView();
-      return ListView.separated(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-        itemCount: list.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, i) => _ShipmentCard(shipment: list[i]),
-      );
-    }
-    return const SizedBox.shrink();
+    return switch (state) {
+      ShipmentsLoading() => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary)),
+      ShipmentsError(:final message) => _ErrorView(
+          message: message,
+          onRetry: () =>
+              context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested()),
+        ),
+      ShipmentsLoaded(:final filtered) => filtered.isEmpty
+          ? const _EmptyView()
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+              itemCount: filtered.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (_, i) => _ShipmentCard(shipment: filtered[i]),
+            ),
+      _ => const SizedBox.shrink(),
+    };
   }
 }
 
@@ -232,7 +226,7 @@ class _ShipmentCard extends StatelessWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha:0.12),
+                        color: AppColors.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(Icons.local_shipping_outlined,
@@ -252,7 +246,7 @@ class _ShipmentCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            _formatDate(shipment.createdAt),
+                            DateFormatter.formatDateTime(shipment.createdAt),
                             style: const TextStyle(
                               color: AppColors.onSurface,
                               fontSize: 12,
@@ -272,11 +266,6 @@ class _ShipmentCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime dt) {
-    return '${dt.day}/${dt.month}/${dt.year}  '
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -350,9 +339,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha:0.12),
+        color: _color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _color.withValues(alpha:0.35)),
+        border: Border.all(color: _color.withValues(alpha: 0.35)),
       ),
       child: Text(
         status.label,
@@ -459,7 +448,7 @@ class _ErrorView extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha:0.1),
+                color: AppColors.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.error_outline_rounded,

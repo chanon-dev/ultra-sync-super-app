@@ -9,6 +9,7 @@ import 'package:ultra_sync/features/wallet/domain/usecases/get_balance_usecase.d
 import 'package:ultra_sync/features/wallet/domain/usecases/list_transactions_usecase.dart';
 import 'package:ultra_sync/features/wallet/domain/usecases/top_up_usecase.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_state.dart';
 
 class _MockGetBalance extends Mock implements GetBalanceUseCase {}
 class _MockTopUp extends Mock implements TopUpUseCase {}
@@ -112,10 +113,11 @@ void main() {
       )),
       expect: () => [
         const WalletLoading(),
-        WalletTopUpSuccess(
-          transaction: tTx,
+        WalletLoaded(
           wallet: tWallet,
           transactions: [tTx],
+          topUpJustSucceeded: true,
+          lastTopUp: tTx,
         ),
       ],
     );
@@ -153,10 +155,11 @@ void main() {
       )),
       expect: () => [
         const WalletLoading(),
-        WalletTopUpSuccess(
-          transaction: tTx,
+        WalletLoaded(
           wallet: tWallet,
           transactions: const [],
+          topUpJustSucceeded: true,
+          lastTopUp: tTx,
         ),
       ],
     );

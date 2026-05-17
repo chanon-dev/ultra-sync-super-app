@@ -1,48 +1,20 @@
-part of 'shipments_bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
 
-abstract class ShipmentsState extends Equatable {
-  const ShipmentsState();
+part 'shipments_state.freezed.dart';
 
-  @override
-  List<Object?> get props => [];
-}
-
-class ShipmentsInitial extends ShipmentsState {
-  const ShipmentsInitial();
-}
-
-class ShipmentsLoading extends ShipmentsState {
-  const ShipmentsLoading();
-}
-
-class ShipmentsLoaded extends ShipmentsState {
-  final List<Shipment> shipments;
-  const ShipmentsLoaded(this.shipments);
-
-  @override
-  List<Object?> get props => [shipments];
-}
-
-class ShipmentCreated extends ShipmentsState {
-  final Shipment shipment;
-  const ShipmentCreated(this.shipment);
-
-  @override
-  List<Object?> get props => [shipment];
-}
-
-class ShipmentDetail extends ShipmentsState {
-  final Shipment shipment;
-  const ShipmentDetail(this.shipment);
-
-  @override
-  List<Object?> get props => [shipment];
-}
-
-class ShipmentsError extends ShipmentsState {
-  final String message;
-  const ShipmentsError(this.message);
-
-  @override
-  List<Object?> get props => [message];
+@freezed
+sealed class ShipmentsState with _$ShipmentsState {
+  const factory ShipmentsState.initial() = ShipmentsInitial;
+  const factory ShipmentsState.loading() = ShipmentsLoading;
+  const factory ShipmentsState.loaded({
+    required List<Shipment> all,
+    required List<Shipment> filtered,
+    // null means "All" selected.
+    ShipmentStatus? activeFilter,
+    @Default('') String query,
+  }) = ShipmentsLoaded;
+  const factory ShipmentsState.created(Shipment shipment) = ShipmentCreated;
+  const factory ShipmentsState.detail(Shipment shipment) = ShipmentDetail;
+  const factory ShipmentsState.error(String message) = ShipmentsError;
 }

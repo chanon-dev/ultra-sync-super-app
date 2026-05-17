@@ -1,47 +1,15 @@
-part of 'auth_bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:ultra_sync/core/error/failures.dart';
+import 'package:ultra_sync/features/auth/domain/entities/user.dart';
 
-abstract class AuthState extends Equatable {
-  const AuthState();
+part 'auth_state.freezed.dart';
 
-  @override
-  List<Object?> get props => [];
-}
-
-class AuthInitial extends AuthState {
-  const AuthInitial();
-}
-
-class AuthLoading extends AuthState {
-  const AuthLoading();
-}
-
-class AuthAuthenticated extends AuthState {
-  final TokenPair tokens;
-
-  const AuthAuthenticated({required this.tokens});
-
-  @override
-  List<Object?> get props => [tokens];
-}
-
-class AuthRegistered extends AuthState {
-  final User user;
-
-  const AuthRegistered({required this.user});
-
-  @override
-  List<Object?> get props => [user];
-}
-
-class AuthUnauthenticated extends AuthState {
-  const AuthUnauthenticated();
-}
-
-class AuthFailureState extends AuthState {
-  final Failure failure;
-
-  const AuthFailureState({required this.failure});
-
-  @override
-  List<Object?> get props => [failure];
+@freezed
+sealed class AuthState with _$AuthState {
+  const factory AuthState.initial() = AuthInitial;
+  const factory AuthState.loading() = AuthLoading;
+  const factory AuthState.authenticated({required TokenPair tokens}) = AuthAuthenticated;
+  const factory AuthState.registered({required User user}) = AuthRegistered;
+  const factory AuthState.unauthenticated() = AuthUnauthenticated;
+  const factory AuthState.failure({required Failure failure}) = AuthFailureState;
 }

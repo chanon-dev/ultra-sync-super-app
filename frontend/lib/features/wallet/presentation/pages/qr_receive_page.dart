@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_state.dart';
 
 /// Displays the user's wallet QR code so another user can scan it
 /// and send a payment.  The QR payload is the user's UUID which the
@@ -24,8 +25,7 @@ class QrReceivePage extends StatelessWidget {
       body: BlocBuilder<WalletBloc, WalletState>(
         builder: (context, state) {
           final walletId = switch (state) {
-            WalletLoaded s => s.wallet.userId,
-            WalletTopUpSuccess s => s.wallet.userId,
+            WalletLoaded(:final wallet) => wallet.userId,
             _ => null,
           };
 

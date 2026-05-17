@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
+import 'package:ultra_sync/core/utils/date_formatter.dart';
 import 'package:ultra_sync/features/wallet/domain/entities/wallet.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_state.dart';
 
 class WalletPage extends StatefulWidget {
   const WalletPage({super.key});
@@ -24,10 +26,10 @@ class _WalletPageState extends State<WalletPage> {
     return Scaffold(
       body: BlocConsumer<WalletBloc, WalletState>(
         listener: (context, state) {
-          if (state is WalletTopUpSuccess) {
+          if (state is WalletLoaded && state.topUpJustSucceeded) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(
-                  'Topped up ${state.transaction.amount} ${state.wallet.currency}'),
+                  'Topped up ${state.lastTopUp!.amount} ${state.wallet.currency}'),
               backgroundColor: AppColors.success,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -41,28 +43,17 @@ class _WalletPageState extends State<WalletPage> {
             ));
           }
         },
-        builder: (context, state) {
-          if (state is WalletLoading) {
-            return const Center(
-                child: CircularProgressIndicator(color: AppColors.secondary));
-          }
-          if (state is WalletLoaded || state is WalletTopUpSuccess) {
-            final wallet = state is WalletLoaded
-                ? state.wallet
-                : (state as WalletTopUpSuccess).wallet;
-            final transactions = state is WalletLoaded
-                ? state.transactions
-                : (state as WalletTopUpSuccess).transactions;
-            return _WalletContent(wallet: wallet, transactions: transactions);
-          }
-          if (state is WalletError) {
-            return _ErrorView(
-              message: state.message,
+        builder: (context, state) => switch (state) {
+          WalletLoading() => const Center(
+              child: CircularProgressIndicator(color: AppColors.secondary)),
+          WalletLoaded(:final wallet, :final transactions) =>
+            _WalletContent(wallet: wallet, transactions: transactions),
+          WalletError(:final message) => _ErrorView(
+              message: message,
               onRetry: () =>
                   context.read<WalletBloc>().add(const WalletLoadRequested()),
-            );
-          }
-          return const SizedBox.shrink();
+            ),
+          _ => const SizedBox.shrink(),
         },
       ),
     );
@@ -412,9 +403,7 @@ class _TransactionCard extends StatelessWidget {
         TransactionType.payout => Icons.arrow_upward_rounded,
       };
 
-  String _formatDate(DateTime dt) =>
-      '${dt.day}/${dt.month}/${dt.year}  '
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime dt) => DateFormatter.formatDateTime(dt);
 }
 
 class _TopUpSheet extends StatefulWidget {

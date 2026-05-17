@@ -1,50 +1,18 @@
-part of 'wallet_bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:ultra_sync/features/wallet/domain/entities/wallet.dart';
 
-abstract class WalletState extends Equatable {
-  const WalletState();
+part 'wallet_state.freezed.dart';
 
-  @override
-  List<Object?> get props => [];
-}
-
-class WalletInitial extends WalletState {
-  const WalletInitial();
-}
-
-class WalletLoading extends WalletState {
-  const WalletLoading();
-}
-
-class WalletLoaded extends WalletState {
-  final Wallet wallet;
-  final List<WalletTransaction> transactions;
-
-  const WalletLoaded({required this.wallet, required this.transactions});
-
-  @override
-  List<Object?> get props => [wallet, transactions];
-}
-
-class WalletTopUpSuccess extends WalletState {
-  final WalletTransaction transaction;
-  final Wallet wallet;
-  final List<WalletTransaction> transactions;
-
-  const WalletTopUpSuccess({
-    required this.transaction,
-    required this.wallet,
-    required this.transactions,
-  });
-
-  @override
-  List<Object?> get props => [transaction, wallet, transactions];
-}
-
-class WalletError extends WalletState {
-  final String message;
-
-  const WalletError(this.message);
-
-  @override
-  List<Object?> get props => [message];
+@freezed
+sealed class WalletState with _$WalletState {
+  const factory WalletState.initial() = WalletInitial;
+  const factory WalletState.loading() = WalletLoading;
+  const factory WalletState.loaded({
+    required Wallet wallet,
+    required List<WalletTransaction> transactions,
+    // When true, the listener in WalletPage shows a success snackbar once.
+    @Default(false) bool topUpJustSucceeded,
+    WalletTransaction? lastTopUp,
+  }) = WalletLoaded;
+  const factory WalletState.error(String message) = WalletError;
 }

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/di/injection.dart';
 import 'package:ultra_sync/core/router/main_shell.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ultra_sync/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ultra_sync/features/auth/presentation/pages/home_page.dart';
 import 'package:ultra_sync/features/auth/presentation/pages/login_page.dart';
 import 'package:ultra_sync/features/auth/presentation/pages/register_page.dart';

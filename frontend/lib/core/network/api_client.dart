@@ -1,15 +1,12 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:ultra_sync/core/ports/token_storage.dart';
 
 class ApiClient {
   late final Dio _dio;
-  final FlutterSecureStorage _storage;
 
-  static const _accessTokenKey = 'access_token';
-  static const _refreshTokenKey = 'refresh_token';
-
-  ApiClient({required String baseUrl, required FlutterSecureStorage storage})
-      : _storage = storage {
+  ApiClient({required String baseUrl, required TokenStorage tokenStorage}) {
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 10),
@@ -17,31 +14,22 @@ class ApiClient {
       headers: {'Content-Type': 'application/json'},
     ));
 
-    _dio.interceptors.add(_AuthInterceptor(storage: _storage, dio: _dio));
+    _dio.interceptors.add(_AuthInterceptor(tokenStorage: tokenStorage, dio: _dio));
   }
 
   Dio get dio => _dio;
-
-  Future<void> saveTokens({required String access, required String refresh}) async {
-    await Future.wait([
-      _storage.write(key: _accessTokenKey, value: access),
-      _storage.write(key: _refreshTokenKey, value: refresh),
-    ]);
-  }
-
-  Future<void> clearTokens() async {
-    await Future.wait([
-      _storage.delete(key: _accessTokenKey),
-      _storage.delete(key: _refreshTokenKey),
-    ]);
-  }
 }
 
 class _AuthInterceptor extends Interceptor {
-  final FlutterSecureStorage storage;
-  final Dio dio;
+  final TokenStorage _tokenStorage;
+  final Dio _dio;
 
-  _AuthInterceptor({required this.storage, required this.dio});
+  // Lock to prevent concurrent refresh races (multiple 401s firing in parallel).
+  Completer<bool>? _refreshCompleter;
+
+  _AuthInterceptor({required TokenStorage tokenStorage, required Dio dio})
+      : _tokenStorage = tokenStorage,
+        _dio = dio;
 
   @override
   Future<void> onRequest(
@@ -49,7 +37,7 @@ class _AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     try {
-      final token = await storage.read(key: 'access_token');
+      final token = await _tokenStorage.getAccessToken();
       if (token != null) {
         options.headers['Authorization'] = 'Bearer $token';
       }
@@ -64,10 +52,9 @@ class _AuthInterceptor extends Interceptor {
     if (err.response?.statusCode == 401) {
       final refreshed = await _tryRefresh();
       if (refreshed) {
-        // Retry original request with new token
-        final token = await storage.read(key: 'access_token');
+        final token = await _tokenStorage.getAccessToken();
         err.requestOptions.headers['Authorization'] = 'Bearer $token';
-        final response = await dio.fetch(err.requestOptions);
+        final response = await _dio.fetch(err.requestOptions);
         return handler.resolve(response);
       }
     }
@@ -75,27 +62,35 @@ class _AuthInterceptor extends Interceptor {
   }
 
   Future<bool> _tryRefresh() async {
-    final refreshToken = await storage.read(key: 'refresh_token');
-    if (refreshToken == null) return false;
+    // Serialize concurrent refresh attempts — only the first one hits the network.
+    if (_refreshCompleter != null) return _refreshCompleter!.future;
+    _refreshCompleter = Completer();
 
     try {
-      final response = await dio.post(
+      final refreshToken = await _tokenStorage.getRefreshToken();
+      if (refreshToken == null) {
+        _refreshCompleter!.complete(false);
+        return false;
+      }
+
+      final response = await _dio.post(
         '/api/v1/auth/refresh',
         data: {'refresh_token': refreshToken},
         options: Options(extra: {'skipAuth': true}),
       );
       final data = response.data['data'] as Map<String, dynamic>;
-      await Future.wait([
-        storage.write(key: 'access_token', value: data['access_token'] as String),
-        storage.write(key: 'refresh_token', value: data['refresh_token'] as String),
-      ]);
+      await _tokenStorage.save(
+        access: data['access_token'] as String,
+        refresh: data['refresh_token'] as String,
+      );
+      _refreshCompleter!.complete(true);
       return true;
     } catch (_) {
-      await Future.wait([
-        storage.delete(key: 'access_token'),
-        storage.delete(key: 'refresh_token'),
-      ]);
+      await _tokenStorage.clear();
+      _refreshCompleter!.complete(false);
       return false;
+    } finally {
+      _refreshCompleter = null;
     }
   }
 }

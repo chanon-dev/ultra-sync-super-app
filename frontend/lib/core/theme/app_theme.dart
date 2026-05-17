@@ -59,6 +59,33 @@ abstract final class AppGradients {
   );
 }
 
+abstract final class AppSpacing {
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 16.0;
+  static const lg = 20.0;
+  static const xl = 24.0;
+  static const xxl = 32.0;
+}
+
+abstract final class AppRadius {
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const input = 14.0;
+  static const card = 16.0;
+  static const xl = 24.0;
+}
+
+abstract final class AppColorsDark {
+  static const background = Color(0xFF0F0F1A);
+  static const surface = Color(0xFF1A1A2E);
+  static const surfaceVariant = Color(0xFF252540);
+  static const surfaceHighlight = Color(0xFF2D2D50);
+  static const onBackground = Color(0xFFF0F0FF);
+  static const onSurface = Color(0xFF94A3B8);
+  static const divider = Color(0xFF2D2D4E);
+}
+
 abstract final class AppShadows {
   static List<BoxShadow> primary = [
     BoxShadow(
@@ -206,6 +233,125 @@ ThemeData buildAppTheme() {
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    ),
+  );
+}
+
+ThemeData buildDarkAppTheme() {
+  const colorScheme = ColorScheme.dark(
+    primary: AppColors.primary,
+    secondary: AppColors.secondary,
+    error: AppColors.error,
+    surface: AppColorsDark.surface,
+    onPrimary: AppColors.onPrimary,
+    onSurface: AppColorsDark.onSurface,
+    onSurfaceVariant: AppColorsDark.onSurface,
+  );
+
+  return ThemeData(
+    colorScheme: colorScheme,
+    useMaterial3: true,
+    fontFamily: 'Inter',
+    scaffoldBackgroundColor: AppColorsDark.background,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColorsDark.background,
+      foregroundColor: AppColorsDark.onBackground,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontFamily: 'Inter',
+        fontWeight: FontWeight.w700,
+        fontSize: 18,
+        color: AppColorsDark.onBackground,
+        letterSpacing: -0.3,
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+        minimumSize: const Size(double.infinity, 54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.input)),
+        elevation: 0,
+        textStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+          letterSpacing: 0.2,
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 54),
+        foregroundColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.primary, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.input)),
+        textStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+        ),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColorsDark.surfaceVariant,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        borderSide: const BorderSide(color: AppColorsDark.divider),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        borderSide: const BorderSide(color: AppColorsDark.divider),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        borderSide: const BorderSide(color: AppColors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.input),
+        borderSide: const BorderSide(color: AppColors.error, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      labelStyle: const TextStyle(color: AppColorsDark.onSurface, fontSize: 15),
+      hintStyle: const TextStyle(color: AppColorsDark.onSurface),
+    ),
+    cardTheme: CardThemeData(
+      color: AppColorsDark.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        side: const BorderSide(color: AppColorsDark.divider),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: AppColorsDark.surfaceVariant,
+      selectedColor: AppColors.primary.withValues(alpha: 0.2),
+      labelStyle: const TextStyle(
+        color: AppColorsDark.onBackground,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+      ),
+      side: const BorderSide(color: AppColorsDark.divider),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    ),
+    dividerTheme: const DividerThemeData(
+      color: AppColorsDark.divider,
+      thickness: 1,
+      space: 0,
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppColorsDark.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
     ),
   );
