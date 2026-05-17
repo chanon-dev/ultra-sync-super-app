@@ -78,7 +78,8 @@ class _AuthInterceptor extends Interceptor {
         data: {'refresh_token': refreshToken},
         options: Options(extra: {'skipAuth': true}),
       );
-      final data = response.data['data'] as Map<String, dynamic>;
+      final body = response.data as Map<String, dynamic>;
+      final data = body['data'] as Map<String, dynamic>;
       await _tokenStorage.save(
         access: data['access_token'] as String,
         refresh: data['refresh_token'] as String,

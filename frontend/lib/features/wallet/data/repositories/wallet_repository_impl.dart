@@ -14,8 +14,8 @@ class WalletRepositoryImpl implements WalletRepository {
   @override
   Future<Either<Failure, Wallet>> getBalance() async {
     try {
-      final wallet = await _remote.getBalance();
-      return Right(wallet);
+      final model = await _remote.getBalance();
+      return Right(model.toDomain());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
@@ -29,8 +29,8 @@ class WalletRepositoryImpl implements WalletRepository {
     required String idempotencyKey,
   }) async {
     try {
-      final tx = await _remote.topUp(amount: amount, idempotencyKey: idempotencyKey);
-      return Right(tx);
+      final model = await _remote.topUp(amount: amount, idempotencyKey: idempotencyKey);
+      return Right(model.toDomain());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
@@ -45,8 +45,8 @@ class WalletRepositoryImpl implements WalletRepository {
     int limit = 20,
   }) async {
     try {
-      final txs = await _remote.listTransactions(type: type, after: after, limit: limit);
-      return Right(txs);
+      final models = await _remote.listTransactions(type: type, after: after, limit: limit);
+      return Right(models.map((m) => m.toDomain()).toList());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {

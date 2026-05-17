@@ -1,25 +1,13 @@
-part of 'wallet_bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-abstract class WalletEvent extends Equatable {
-  const WalletEvent();
+part 'wallet_event.freezed.dart';
 
-  @override
-  List<Object?> get props => [];
-}
+@freezed
+sealed class WalletEvent with _$WalletEvent {
+  const factory WalletEvent.loadRequested() = WalletLoadRequested;
 
-class WalletLoadRequested extends WalletEvent {
-  const WalletLoadRequested();
-}
-
-class WalletTopUpRequested extends WalletEvent {
-  final String amount;
-  final String idempotencyKey;
-
-  const WalletTopUpRequested({
-    required this.amount,
-    required this.idempotencyKey,
-  });
-
-  @override
-  List<Object?> get props => [amount, idempotencyKey];
+  const factory WalletEvent.topUpRequested({
+    required String amount,
+    required String idempotencyKey,
+  }) = WalletTopUpRequested;
 }

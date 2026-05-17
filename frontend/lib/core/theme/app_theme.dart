@@ -122,8 +122,6 @@ ThemeData buildAppTheme() {
     primary: AppColors.primary,
     secondary: AppColors.secondary,
     error: AppColors.error,
-    surface: AppColors.surface,
-    onPrimary: AppColors.onPrimary,
     onSurface: AppColors.onSurface,
     onSurfaceVariant: AppColors.onSurface,
   );

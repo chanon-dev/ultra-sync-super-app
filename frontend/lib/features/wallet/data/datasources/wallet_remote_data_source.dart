@@ -29,7 +29,8 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
   Future<WalletModel> getBalance() async {
     try {
       final response = await _client.dio.get('/api/v1/wallet/balance');
-      return WalletModel.fromJson(response.data['data'] as Map<String, dynamic>);
+      final body = response.data as Map<String, dynamic>;
+      return WalletModel.fromJson(body['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -46,8 +47,8 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
         data: {'amount': amount},
         options: Options(headers: {'X-Idempotency-Key': idempotencyKey}),
       );
-      return TransactionModel.fromJson(
-          response.data['data'] as Map<String, dynamic>);
+      final body = response.data as Map<String, dynamic>;
+      return TransactionModel.fromJson(body['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -69,7 +70,8 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
         queryParameters: params,
       );
 
-      final items = response.data['data'] as List<dynamic>;
+      final body = response.data as Map<String, dynamic>;
+      final items = body['data'] as List<dynamic>;
       return items
           .map((e) => TransactionModel.fromJson(e as Map<String, dynamic>))
           .toList();

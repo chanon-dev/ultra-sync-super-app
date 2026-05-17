@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ultra_sync/features/auth/presentation/bloc/auth_event.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -149,9 +150,9 @@ class _AccountSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return const _Section(
       title: 'Account',
-      items: const [
+      items: [
         _SettingItem(
           icon: Icons.person_outline_rounded,
           label: 'Personal Information',

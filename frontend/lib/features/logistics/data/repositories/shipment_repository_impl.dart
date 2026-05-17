@@ -18,13 +18,13 @@ class ShipmentRepositoryImpl implements ShipmentRepository {
     required double dropoffLng,
   }) async {
     try {
-      final shipment = await _remote.createShipment(
+      final model = await _remote.createShipment(
         pickupLat: pickupLat,
         pickupLng: pickupLng,
         dropoffLat: dropoffLat,
         dropoffLng: dropoffLng,
       );
-      return Right(shipment);
+      return Right(model.toDomain());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
@@ -39,12 +39,8 @@ class ShipmentRepositoryImpl implements ShipmentRepository {
     int limit = 20,
   }) async {
     try {
-      final shipments = await _remote.listShipments(
-        status: status,
-        after: after,
-        limit: limit,
-      );
-      return Right(shipments);
+      final models = await _remote.listShipments(status: status, after: after, limit: limit);
+      return Right(models.map((m) => m.toDomain()).toList());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
@@ -55,8 +51,8 @@ class ShipmentRepositoryImpl implements ShipmentRepository {
   @override
   Future<Either<Failure, Shipment>> getShipment(String id) async {
     try {
-      final shipment = await _remote.getShipment(id);
-      return Right(shipment);
+      final model = await _remote.getShipment(id);
+      return Right(model.toDomain());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {

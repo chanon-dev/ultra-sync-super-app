@@ -8,6 +8,7 @@ import 'package:ultra_sync/core/di/injection.dart';
 import 'package:ultra_sync/core/router/app_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ultra_sync/features/auth/presentation/bloc/auth_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +22,7 @@ void main() async {
   };
 
   // .env is optional — missing file is fine in CI/prod (use --dart-define instead).
-  await dotenv.load(fileName: '.env').catchError((_) {});
+  await dotenv.load().catchError((_) {});
   configureDependencies();
   runApp(const UltraSyncApp());
 }
@@ -58,7 +59,6 @@ class _UltraSyncAppState extends State<UltraSyncApp> {
         title: 'Ultra-Sync',
         theme: buildAppTheme(),
         darkTheme: buildDarkAppTheme(),
-        themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         routerConfig: _router,
       ),

@@ -38,7 +38,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         '/api/v1/auth/register',
         data: {'email': email, 'password': password, 'role': role},
       );
-      return UserModel.fromJson(response.data['data'] as Map<String, dynamic>);
+      final body = response.data as Map<String, dynamic>;
+      return UserModel.fromJson(body['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapDioError(e);
     }
@@ -54,7 +55,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         '/api/v1/auth/login',
         data: {'email': email, 'password': password},
       );
-      return TokenPairModel.fromJson(response.data['data'] as Map<String, dynamic>);
+      final body = response.data as Map<String, dynamic>;
+      return TokenPairModel.fromJson(body['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapDioError(e);
     }
@@ -67,7 +69,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         '/api/v1/auth/refresh',
         data: {'refresh_token': refreshToken},
       );
-      return TokenPairModel.fromJson(response.data['data'] as Map<String, dynamic>);
+      final body = response.data as Map<String, dynamic>;
+      return TokenPairModel.fromJson(body['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapDioError(e);
     }

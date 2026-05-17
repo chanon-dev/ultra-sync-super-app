@@ -4,7 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/di/injection.dart';
 import 'package:ultra_sync/core/services/biometric_service.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
+import 'package:ultra_sync/core/widgets/app_button.dart';
+import 'package:ultra_sync/core/widgets/app_snack_bar.dart';
+import 'package:ultra_sync/core/widgets/app_text_field.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ultra_sync/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_state.dart';
 
 class LoginPage extends StatefulWidget {
@@ -41,13 +45,7 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthFailureState) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(state.failure.message),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            ));
+            AppSnackBar.showError(context, state.failure.message);
           }
         },
         child: Stack(
@@ -186,15 +184,11 @@ class _LoginForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextFormField(
+          AppTextField(
             controller: emailCtrl,
+            label: 'Email address',
             keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            style: const TextStyle(color: AppColors.onBackground),
-            decoration: const InputDecoration(
-              labelText: 'Email address',
-              prefixIcon: Icon(Icons.alternate_email_rounded),
-            ),
+            prefixIcon: const Icon(Icons.alternate_email_rounded),
             validator: (v) {
               if (v == null || v.isEmpty) return 'Email is required';
               if (!v.contains('@')) return 'Enter a valid email';
@@ -202,21 +196,18 @@ class _LoginForm extends StatelessWidget {
             },
           ),
           const SizedBox(height: 14),
-          TextFormField(
+          AppTextField(
             controller: passwordCtrl,
+            label: 'Password',
             obscureText: obscure,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => onSubmit(),
-            style: const TextStyle(color: AppColors.onBackground),
-            decoration: InputDecoration(
-              labelText: 'Password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                ),
-                onPressed: onToggle,
+            prefixIcon: const Icon(Icons.lock_outline_rounded),
+            suffixIcon: IconButton(
+              icon: Icon(
+                obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
               ),
+              onPressed: onToggle,
             ),
             validator: (v) {
               if (v == null || v.isEmpty) return 'Password is required';
@@ -224,7 +215,7 @@ class _LoginForm extends StatelessWidget {
             },
           ),
           const SizedBox(height: 12),
-          Align(
+          const Align(
             alignment: Alignment.centerRight,
             child: Text(
               'Forgot password?',
@@ -237,15 +228,10 @@ class _LoginForm extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) => ElevatedButton(
-              onPressed: state is AuthLoading ? null : onSubmit,
-              child: state is AuthLoading
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                    )
-                  : const Text('Sign In'),
+            builder: (context, state) => AppButton(
+              label: 'Sign In',
+              onPressed: onSubmit,
+              loading: state is AuthLoading,
             ),
           ),
         ],
@@ -282,7 +268,7 @@ class _SignUpFooter extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
+        const Text(
           "Don't have an account? ",
           style: TextStyle(color: AppColors.onSurface, fontSize: 14),
         ),

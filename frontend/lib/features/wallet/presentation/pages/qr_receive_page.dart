@@ -139,7 +139,6 @@ class _QrFrame extends StatelessWidget {
         children: [
           QrImageView(
             data: walletId,
-            version: QrVersions.auto,
             size: 220,
             backgroundColor: Colors.white,
             eyeStyle: const QrEyeStyle(
@@ -299,13 +298,13 @@ class _ShareHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.info_outline_rounded, color: AppColors.onSurface, size: 14),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Flexible(
             child: Text(
               'Screenshot or share this code for faster payments',

@@ -20,8 +20,8 @@ class AuthRepositoryImpl implements AuthRepository {
     required String role,
   }) async {
     try {
-      final user = await _remote.register(email: email, password: password, role: role);
-      return Right(user);
+      final model = await _remote.register(email: email, password: password, role: role);
+      return Right(model.toDomain());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
@@ -35,12 +35,12 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
-      final tokens = await _remote.login(email: email, password: password);
+      final model = await _remote.login(email: email, password: password);
       await _tokenStorage.save(
-        access: tokens.accessToken,
-        refresh: tokens.refreshToken,
+        access: model.accessToken,
+        refresh: model.refreshToken,
       );
-      return Right(tokens);
+      return Right(model.toDomain());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
@@ -51,16 +51,16 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, TokenPair>> refreshToken(String refreshToken) async {
     try {
-      final tokens = await _remote.refreshToken(refreshToken);
+      final model = await _remote.refreshToken(refreshToken);
       await _tokenStorage.save(
-        access: tokens.accessToken,
-        refresh: tokens.refreshToken,
+        access: model.accessToken,
+        refresh: model.refreshToken,
       );
-      return Right(tokens);
+      return Right(model.toDomain());
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
-      return Left(const UnauthorizedFailure());
+      return const Left(UnauthorizedFailure());
     }
   }
 
@@ -81,7 +81,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, User?>> getCachedUser() async {
-    // Phase 2: implement local cache with shared_preferences.
     return const Right(null);
   }
+
+  @override
+  Future<String?> getStoredRefreshToken() => _tokenStorage.getRefreshToken();
 }

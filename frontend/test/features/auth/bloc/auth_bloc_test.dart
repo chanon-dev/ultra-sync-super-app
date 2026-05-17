@@ -3,14 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:ultra_sync/core/error/failures.dart';
+import 'package:ultra_sync/core/services/biometric_service.dart';
 import 'package:ultra_sync/core/utils/use_case.dart';
 import 'package:ultra_sync/features/auth/domain/entities/user.dart';
 import 'package:ultra_sync/features/auth/domain/usecases/check_auth_usecase.dart';
 import 'package:ultra_sync/features/auth/domain/usecases/login_usecase.dart';
 import 'package:ultra_sync/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:ultra_sync/features/auth/domain/usecases/register_usecase.dart';
-import 'package:ultra_sync/core/services/biometric_service.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ultra_sync/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_state.dart';
 
 class _MockLogin extends Mock implements LoginUseCase {}

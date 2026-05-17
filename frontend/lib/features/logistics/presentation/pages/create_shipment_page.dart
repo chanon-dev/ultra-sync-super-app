@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
+import 'package:ultra_sync/core/widgets/app_snack_bar.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.dart';
+import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_event.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_state.dart';
 
 class CreateShipmentPage extends StatefulWidget {
@@ -52,11 +54,7 @@ class _CreateShipmentPageState extends State<CreateShipmentPage> {
         listener: (context, state) {
           if (state is ShipmentCreated) context.pop();
           if (state is ShipmentsError) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ));
+            AppSnackBar.showError(context, state.message);
           }
         },
         child: Form(

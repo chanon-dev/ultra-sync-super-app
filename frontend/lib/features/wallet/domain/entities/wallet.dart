@@ -1,22 +1,16 @@
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class Wallet extends Equatable {
-  final String userId;
-  final String balance;
-  final String currency;
-  final int version;
-  final DateTime updatedAt;
+part 'wallet.freezed.dart';
 
-  const Wallet({
-    required this.userId,
-    required this.balance,
-    required this.currency,
-    required this.version,
-    required this.updatedAt,
-  });
-
-  @override
-  List<Object?> get props => [userId, balance, currency, version, updatedAt];
+@freezed
+abstract class Wallet with _$Wallet {
+  const factory Wallet({
+    required String userId,
+    required String balance,
+    required String currency,
+    required int version,
+    required DateTime updatedAt,
+  }) = _Wallet;
 }
 
 enum TransactionType {
@@ -38,29 +32,20 @@ enum TransactionType {
       };
 }
 
-class WalletTransaction extends Equatable {
-  final String id;
-  final String walletId;
-  final TransactionType type;
-  final String amount;
-  final String balanceAfter;
-  final String? referenceId;
-  final String idempotencyKey;
-  final DateTime createdAt;
+@freezed
+abstract class WalletTransaction with _$WalletTransaction {
+  const WalletTransaction._();
 
-  const WalletTransaction({
-    required this.id,
-    required this.walletId,
-    required this.type,
-    required this.amount,
-    required this.balanceAfter,
-    this.referenceId,
-    required this.idempotencyKey,
-    required this.createdAt,
-  });
+  const factory WalletTransaction({
+    required String id,
+    required String walletId,
+    required TransactionType type,
+    required String amount,
+    required String balanceAfter,
+    String? referenceId,
+    required String idempotencyKey,
+    required DateTime createdAt,
+  }) = _WalletTransaction;
 
   bool get isCredit => !amount.startsWith('-');
-
-  @override
-  List<Object?> get props => [id, type, amount, createdAt];
 }

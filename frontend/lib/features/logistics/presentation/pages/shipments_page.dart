@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/core/utils/date_formatter.dart';
+import 'package:ultra_sync/core/widgets/app_snack_bar.dart';
 import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.dart';
+import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_event.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_state.dart';
 
 class ShipmentsPage extends StatefulWidget {
@@ -38,12 +40,10 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
       body: BlocConsumer<ShipmentsBloc, ShipmentsState>(
         listener: (context, state) {
           if (state is ShipmentCreated) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Shipment ${state.shipment.orderNo} created!'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ));
+            AppSnackBar.showSuccess(
+              context,
+              'Shipment ${state.shipment.orderNo} created!',
+            );
             context.read<ShipmentsBloc>().add(const ShipmentsLoadRequested());
           }
         },
@@ -402,7 +402,7 @@ class _EmptyView extends StatelessWidget {
           Container(
             width: 80,
             height: 80,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.surfaceVariant,
               shape: BoxShape.circle,
             ),

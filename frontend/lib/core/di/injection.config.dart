@@ -12,6 +12,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart' as _i558;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
+import 'package:local_auth/local_auth.dart' as _i152;
 import 'package:ultra_sync/core/network/api_client.dart' as _i513;
 import 'package:ultra_sync/core/ports/token_storage.dart' as _i700;
 import 'package:ultra_sync/core/services/biometric_service.dart' as _i874;
@@ -73,7 +74,6 @@ extension GetItInjectableX on _i174.GetIt {
       environment,
       environmentFilter,
     );
-    gh.lazySingleton<_i874.BiometricService>(() => _i874.BiometricService());
     gh.lazySingleton<_i180.ShipmentRemoteDataSource>(
         () => _i180.ShipmentRemoteDataSourceImpl(gh<_i513.ApiClient>()));
     gh.lazySingleton<_i640.WalletRemoteDataSource>(
@@ -90,10 +90,16 @@ extension GetItInjectableX on _i174.GetIt {
           gh<_i853.AuthRemoteDataSource>(),
           gh<_i700.TokenStorage>(),
         ));
+    gh.lazySingleton<_i611.CheckAuthUseCase>(
+        () => _i611.CheckAuthUseCase(gh<_i951.AuthRepository>()));
     gh.lazySingleton<_i485.LoginUseCase>(
         () => _i485.LoginUseCase(gh<_i951.AuthRepository>()));
+    gh.lazySingleton<_i994.LogoutUseCase>(
+        () => _i994.LogoutUseCase(gh<_i951.AuthRepository>()));
     gh.lazySingleton<_i876.RegisterUseCase>(
         () => _i876.RegisterUseCase(gh<_i951.AuthRepository>()));
+    gh.lazySingleton<_i874.BiometricService>(
+        () => _i874.BiometricService(gh<_i152.LocalAuthentication>()));
     gh.lazySingleton<_i173.ShipmentRepository>(() =>
         _i243.ShipmentRepositoryImpl(gh<_i180.ShipmentRemoteDataSource>()));
     gh.lazySingleton<_i906.GetBalanceUseCase>(
@@ -102,14 +108,6 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i493.ListTransactionsUseCase(gh<_i945.WalletRepository>()));
     gh.lazySingleton<_i788.TopUpUseCase>(
         () => _i788.TopUpUseCase(gh<_i945.WalletRepository>()));
-    gh.lazySingleton<_i611.CheckAuthUseCase>(() => _i611.CheckAuthUseCase(
-          gh<_i951.AuthRepository>(),
-          gh<_i700.TokenStorage>(),
-        ));
-    gh.lazySingleton<_i994.LogoutUseCase>(() => _i994.LogoutUseCase(
-          gh<_i951.AuthRepository>(),
-          gh<_i700.TokenStorage>(),
-        ));
     gh.factory<_i135.AuthBloc>(() => _i135.AuthBloc(
           login: gh<_i485.LoginUseCase>(),
           register: gh<_i876.RegisterUseCase>(),

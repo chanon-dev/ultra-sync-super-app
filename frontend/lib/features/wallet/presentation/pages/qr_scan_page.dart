@@ -16,9 +16,7 @@ class QrScanPage extends StatefulWidget {
 class _QrScanPageState extends State<QrScanPage>
     with SingleTickerProviderStateMixin {
   final MobileScannerController _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    facing: CameraFacing.back,
-    torchEnabled: false,
+    
   );
 
   late final AnimationController _scanAnim;
@@ -255,12 +253,12 @@ class _BottomHint extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.white.withValues(alpha:0.1)),
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.qr_code_rounded, color: AppColors.secondary, size: 18),
-              const SizedBox(width: 10),
-              const Text(
+              SizedBox(width: 10),
+              Text(
                 'Point at a wallet QR code',
                 style: TextStyle(
                   color: Colors.white70,
@@ -289,8 +287,8 @@ class _CornerPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     // top-left
-    canvas.drawLine(Offset(r, 0), Offset(len, 0), paint);
-    canvas.drawLine(Offset(0, r), Offset(0, len), paint);
+    canvas.drawLine(const Offset(r, 0), const Offset(len, 0), paint);
+    canvas.drawLine(const Offset(0, r), const Offset(0, len), paint);
     canvas.drawArc(const Rect.fromLTWH(0, 0, r * 2, r * 2), -3.14159, 1.5708, false, paint);
     // top-right
     canvas.drawLine(Offset(size.width - len, 0), Offset(size.width - r, 0), paint);

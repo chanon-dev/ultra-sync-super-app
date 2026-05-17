@@ -9,6 +9,7 @@ import 'package:ultra_sync/features/wallet/domain/usecases/get_balance_usecase.d
 import 'package:ultra_sync/features/wallet/domain/usecases/list_transactions_usecase.dart';
 import 'package:ultra_sync/features/wallet/domain/usecases/top_up_usecase.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_state.dart';
 
 class _MockGetBalance extends Mock implements GetBalanceUseCase {}

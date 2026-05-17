@@ -126,7 +126,7 @@ class _QuickStats extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Expanded(
+            const Expanded(
               child: _StatItem(
                 label: 'Wallet Balance',
                 value: 'THB 12,500',
@@ -139,7 +139,7 @@ class _QuickStats extends StatelessWidget {
               height: 48,
               color: Colors.white.withValues(alpha: 0.15),
             ),
-            Expanded(
+            const Expanded(
               child: _StatItem(
                 label: 'Active Shipments',
                 value: '3 orders',

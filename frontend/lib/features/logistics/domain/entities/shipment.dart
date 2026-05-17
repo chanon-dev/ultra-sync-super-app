@@ -1,4 +1,6 @@
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'shipment.freezed.dart';
 
 enum ShipmentStatus {
   pending,
@@ -27,46 +29,33 @@ enum ShipmentStatus {
       };
 }
 
-class GeoPoint extends Equatable {
-  final double latitude;
-  final double longitude;
-
-  const GeoPoint({required this.latitude, required this.longitude});
-
-  @override
-  List<Object?> get props => [latitude, longitude];
+@freezed
+abstract class GeoPoint with _$GeoPoint {
+  const factory GeoPoint({
+    required double latitude,
+    required double longitude,
+  }) = _GeoPoint;
 }
 
-class Shipment extends Equatable {
-  final String id;
-  final String orderNo;
-  final String senderId;
-  final String? driverId;
-  final ShipmentStatus status;
-  final GeoPoint pickupGeo;
-  final GeoPoint dropoffGeo;
-  final String price;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+@freezed
+abstract class Shipment with _$Shipment {
+  const Shipment._();
 
-  const Shipment({
-    required this.id,
-    required this.orderNo,
-    required this.senderId,
-    this.driverId,
-    required this.status,
-    required this.pickupGeo,
-    required this.dropoffGeo,
-    required this.price,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+  const factory Shipment({
+    required String id,
+    required String orderNo,
+    required String senderId,
+    String? driverId,
+    required ShipmentStatus status,
+    required GeoPoint pickupGeo,
+    required GeoPoint dropoffGeo,
+    required String price,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _Shipment;
 
   bool get isActive =>
       status == ShipmentStatus.assigned ||
       status == ShipmentStatus.pickedUp ||
       status == ShipmentStatus.shipping;
-
-  @override
-  List<Object?> get props => [id, orderNo, status, updatedAt];
 }

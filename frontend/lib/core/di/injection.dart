@@ -2,6 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:ultra_sync/core/network/api_client.dart';
 import 'package:ultra_sync/core/ports/token_storage.dart';
 
@@ -11,6 +12,7 @@ final getIt = GetIt.instance;
 
 @InjectableInit()
 void configureDependencies({String env = 'dev'}) {
+  // Third-party singletons that injectable can't construct automatically.
   getIt.registerLazySingleton<FlutterSecureStorage>(
     () => const FlutterSecureStorage(
       webOptions: WebOptions(
@@ -20,9 +22,10 @@ void configureDependencies({String env = 'dev'}) {
     ),
   );
 
+  getIt.registerLazySingleton<LocalAuthentication>(() => LocalAuthentication());
+
   // ApiClient depends on TokenStorage, which is registered lazily by getIt.init().
-  // Both are lazy singletons so the factory runs only on first access — by then
-  // all injectable registrations are complete.
+  // Both are lazy singletons so the factory runs only on first access.
   getIt.registerLazySingleton<ApiClient>(
     () => ApiClient(
       baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080',

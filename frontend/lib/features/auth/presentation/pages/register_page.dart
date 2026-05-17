@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
+import 'package:ultra_sync/core/widgets/app_snack_bar.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ultra_sync/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_state.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -44,19 +46,11 @@ class _RegisterPageState extends State<RegisterPage> {
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthRegistered) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Account created! Please sign in.'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-            ));
+            AppSnackBar.showSuccess(context, 'Account created! Please sign in.');
             context.go('/login');
           }
           if (state is AuthFailureState) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(state.failure.message),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ));
+            AppSnackBar.showError(context, state.failure.message);
           }
         },
         child: Stack(
@@ -159,7 +153,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
+                          const Text(
                             'Already have an account? ',
                             style: TextStyle(color: AppColors.onSurface, fontSize: 14),
                           ),
@@ -381,7 +375,7 @@ class _RoleCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   description,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.onSurface,
                     fontSize: 11,
                   ),

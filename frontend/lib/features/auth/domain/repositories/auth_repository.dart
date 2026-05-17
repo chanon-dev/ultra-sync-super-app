@@ -19,4 +19,8 @@ abstract class AuthRepository {
   Future<Either<Failure, Unit>> logout(String refreshToken);
 
   Future<Either<Failure, User?>> getCachedUser();
+
+  /// Returns the stored refresh token without going through Either —
+  /// this is an infrastructure query, not a domain operation.
+  Future<String?> getStoredRefreshToken();
 }

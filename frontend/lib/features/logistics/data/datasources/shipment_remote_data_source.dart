@@ -43,7 +43,8 @@ class ShipmentRemoteDataSourceImpl implements ShipmentRemoteDataSource {
           'dropoff_lng': dropoffLng,
         },
       );
-      return ShipmentModel.fromJson(response.data['data'] as Map<String, dynamic>);
+      final body = response.data as Map<String, dynamic>;
+      return ShipmentModel.fromJson(body['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -65,7 +66,8 @@ class ShipmentRemoteDataSourceImpl implements ShipmentRemoteDataSource {
         queryParameters: params,
       );
 
-      final items = response.data['data'] as List<dynamic>;
+      final body = response.data as Map<String, dynamic>;
+      final items = body['data'] as List<dynamic>;
       return items
           .map((e) => ShipmentModel.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -78,7 +80,8 @@ class ShipmentRemoteDataSourceImpl implements ShipmentRemoteDataSource {
   Future<ShipmentModel> getShipment(String id) async {
     try {
       final response = await _client.dio.get('/api/v1/shipments/$id');
-      return ShipmentModel.fromJson(response.data['data'] as Map<String, dynamic>);
+      final body = response.data as Map<String, dynamic>;
+      return ShipmentModel.fromJson(body['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _mapError(e);
     }
@@ -94,7 +97,7 @@ class ShipmentRemoteDataSourceImpl implements ShipmentRemoteDataSource {
     return switch (statusCode) {
       400 => ValidationFailure(message: message, code: code),
       401 => const UnauthorizedFailure(),
-      404 => ServerFailure(message: 'Shipment not found', code: 'LOG-404'),
+      404 => const ServerFailure(message: 'Shipment not found', code: 'LOG-404'),
       null => const NetworkFailure(),
       _ => ServerFailure(message: message, code: code),
     };

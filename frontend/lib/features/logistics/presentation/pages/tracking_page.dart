@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.dart';
+import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_event.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_state.dart';
 
 // Set MAPS_API_KEY in .env (local) or pass --dart-define=MAPS_API_KEY=<key> (CI/prod).
@@ -258,7 +259,7 @@ class _MapFallback extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.map_outlined, color: AppColors.onSurface, size: 44),
+                const Icon(Icons.map_outlined, color: AppColors.onSurface, size: 44),
                 const SizedBox(height: 8),
                 Text(
                   'Map Preview',

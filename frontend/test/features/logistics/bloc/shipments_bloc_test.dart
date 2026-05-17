@@ -8,6 +8,7 @@ import 'package:ultra_sync/features/logistics/domain/usecases/create_shipment_us
 import 'package:ultra_sync/features/logistics/domain/usecases/get_shipment_usecase.dart';
 import 'package:ultra_sync/features/logistics/domain/usecases/list_shipments_usecase.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_bloc.dart';
+import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_event.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_state.dart';
 
 class _MockList extends Mock implements ListShipmentsUseCase {}

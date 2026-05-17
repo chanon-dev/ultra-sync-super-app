@@ -2,11 +2,15 @@ include: package:flutter_lints/flutter.yaml
 
 analyzer:
   errors:
+    avoid_dynamic_calls: error
     missing_required_param: error
     missing_return: error
+    unawaited_futures: warning
+    cancel_subscriptions: warning
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+    - "**/injection.config.dart"
 
 linter:
   rules:
@@ -22,7 +26,10 @@ linter:
     - directives_ordering
     - prefer_const_constructors
     - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
     - prefer_final_fields
     - prefer_final_locals
     - prefer_single_quotes
+    - sort_child_properties_last
     - unawaited_futures
+    - use_super_parameters

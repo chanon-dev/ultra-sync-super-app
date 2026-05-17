@@ -1,14 +1,12 @@
 import 'package:bloc/bloc.dart';
-import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
 import 'package:ultra_sync/features/logistics/domain/usecases/create_shipment_usecase.dart';
 import 'package:ultra_sync/features/logistics/domain/usecases/get_shipment_usecase.dart';
 import 'package:ultra_sync/features/logistics/domain/usecases/list_shipments_usecase.dart';
+import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_event.dart';
 import 'package:ultra_sync/features/logistics/presentation/bloc/shipments_state.dart';
-
-part 'shipments_event.dart';
 
 EventTransformer<E> _debounce<E>(Duration duration) =>
     (events, mapper) => events.debounceTime(duration).switchMap(mapper);

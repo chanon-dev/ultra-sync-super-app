@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/core/utils/date_formatter.dart';
+import 'package:ultra_sync/core/widgets/app_snack_bar.dart';
 import 'package:ultra_sync/features/wallet/domain/entities/wallet.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_state.dart';
 
 class WalletPage extends StatefulWidget {
@@ -27,20 +29,13 @@ class _WalletPageState extends State<WalletPage> {
       body: BlocConsumer<WalletBloc, WalletState>(
         listener: (context, state) {
           if (state is WalletLoaded && state.topUpJustSucceeded) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  'Topped up ${state.lastTopUp!.amount} ${state.wallet.currency}'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ));
+            AppSnackBar.showSuccess(
+              context,
+              'Topped up ${state.lastTopUp!.amount} ${state.wallet.currency}',
+            );
           }
           if (state is WalletError) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ));
+            AppSnackBar.showError(context, state.message);
           }
         },
         builder: (context, state) => switch (state) {

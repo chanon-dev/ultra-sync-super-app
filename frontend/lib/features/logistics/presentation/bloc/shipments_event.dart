@@ -1,57 +1,22 @@
-part of 'shipments_bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
 
-abstract class ShipmentsEvent extends Equatable {
-  const ShipmentsEvent();
+part 'shipments_event.freezed.dart';
 
-  @override
-  List<Object?> get props => [];
-}
+@freezed
+sealed class ShipmentsEvent with _$ShipmentsEvent {
+  const factory ShipmentsEvent.loadRequested({String? status}) = ShipmentsLoadRequested;
 
-class ShipmentsLoadRequested extends ShipmentsEvent {
-  final String? status;
-  const ShipmentsLoadRequested({this.status});
+  const factory ShipmentsEvent.createRequested({
+    required double pickupLat,
+    required double pickupLng,
+    required double dropoffLat,
+    required double dropoffLng,
+  }) = ShipmentCreateRequested;
 
-  @override
-  List<Object?> get props => [status];
-}
+  const factory ShipmentsEvent.detailRequested(String id) = ShipmentDetailRequested;
 
-class ShipmentCreateRequested extends ShipmentsEvent {
-  final double pickupLat;
-  final double pickupLng;
-  final double dropoffLat;
-  final double dropoffLng;
+  const factory ShipmentsEvent.filterChanged(ShipmentStatus? filter) = ShipmentsFilterChanged;
 
-  const ShipmentCreateRequested({
-    required this.pickupLat,
-    required this.pickupLng,
-    required this.dropoffLat,
-    required this.dropoffLng,
-  });
-
-  @override
-  List<Object?> get props => [pickupLat, pickupLng, dropoffLat, dropoffLng];
-}
-
-class ShipmentDetailRequested extends ShipmentsEvent {
-  final String id;
-  const ShipmentDetailRequested(this.id);
-
-  @override
-  List<Object?> get props => [id];
-}
-
-class ShipmentsFilterChanged extends ShipmentsEvent {
-  final ShipmentStatus? filter;
-  const ShipmentsFilterChanged(this.filter);
-
-  @override
-  List<Object?> get props => [filter];
-}
-
-class ShipmentsSearchChanged extends ShipmentsEvent {
-  final String query;
-  const ShipmentsSearchChanged(this.query);
-
-  @override
-  List<Object?> get props => [query];
+  const factory ShipmentsEvent.searchChanged(String query) = ShipmentsSearchChanged;
 }

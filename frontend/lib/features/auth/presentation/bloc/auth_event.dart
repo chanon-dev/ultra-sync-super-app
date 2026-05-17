@@ -1,45 +1,23 @@
-part of 'auth_bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-abstract class AuthEvent extends Equatable {
-  const AuthEvent();
+part 'auth_event.freezed.dart';
 
-  @override
-  List<Object?> get props => [];
-}
+@freezed
+sealed class AuthEvent with _$AuthEvent {
+  const factory AuthEvent.loginRequested({
+    required String email,
+    required String password,
+  }) = AuthLoginRequested;
 
-class AuthLoginRequested extends AuthEvent {
-  final String email;
-  final String password;
+  const factory AuthEvent.registerRequested({
+    required String email,
+    required String password,
+    @Default('user') String role,
+  }) = AuthRegisterRequested;
 
-  const AuthLoginRequested({required this.email, required this.password});
+  const factory AuthEvent.logoutRequested() = AuthLogoutRequested;
 
-  @override
-  List<Object?> get props => [email, password];
-}
+  const factory AuthEvent.checkRequested() = AuthCheckRequested;
 
-class AuthRegisterRequested extends AuthEvent {
-  final String email;
-  final String password;
-  final String role;
-
-  const AuthRegisterRequested({
-    required this.email,
-    required this.password,
-    this.role = 'user',
-  });
-
-  @override
-  List<Object?> get props => [email, password, role];
-}
-
-class AuthLogoutRequested extends AuthEvent {
-  const AuthLogoutRequested();
-}
-
-class AuthCheckRequested extends AuthEvent {
-  const AuthCheckRequested();
-}
-
-class AuthBiometricRequested extends AuthEvent {
-  const AuthBiometricRequested();
+  const factory AuthEvent.biometricRequested() = AuthBiometricRequested;
 }

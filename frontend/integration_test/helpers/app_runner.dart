@@ -5,7 +5,7 @@ import 'package:ultra_sync/main.dart' as app;
 /// Shared test bootstrap used by every Patrol test file.
 class AppRunner {
   static Future<void> setUp() async {
-    await configureDependencies(env: 'test');
+    configureDependencies(env: 'test');
   }
 
   static Future<void> tearDown() async {

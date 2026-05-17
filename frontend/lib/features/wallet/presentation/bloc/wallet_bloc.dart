@@ -1,14 +1,12 @@
 import 'package:bloc/bloc.dart';
-import 'package:equatable/equatable.dart';
 import 'package:injectable/injectable.dart';
 import 'package:ultra_sync/core/utils/use_case.dart';
 import 'package:ultra_sync/features/wallet/domain/entities/wallet.dart';
 import 'package:ultra_sync/features/wallet/domain/usecases/get_balance_usecase.dart';
 import 'package:ultra_sync/features/wallet/domain/usecases/list_transactions_usecase.dart';
 import 'package:ultra_sync/features/wallet/domain/usecases/top_up_usecase.dart';
+import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_state.dart';
-
-part 'wallet_event.dart';
 
 @injectable
 class WalletBloc extends Bloc<WalletEvent, WalletState> {

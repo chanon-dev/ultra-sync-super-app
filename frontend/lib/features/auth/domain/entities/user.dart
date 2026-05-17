@@ -1,37 +1,28 @@
-import 'package:equatable/equatable.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class User extends Equatable {
-  final String id;
-  final String email;
-  final String role;
-  final String status;
+part 'user.freezed.dart';
 
-  const User({
-    required this.id,
-    required this.email,
-    required this.role,
-    required this.status,
-  });
+@freezed
+abstract class User with _$User {
+  const User._();
+
+  const factory User({
+    required String id,
+    required String email,
+    required String role,
+    required String status,
+  }) = _User;
 
   bool get isActive => status == 'active';
   bool get isDriver => role == 'driver';
   bool get isAdmin => role == 'admin';
-
-  @override
-  List<Object?> get props => [id, email, role, status];
 }
 
-class TokenPair extends Equatable {
-  final String accessToken;
-  final String refreshToken;
-  final int expiresIn;
-
-  const TokenPair({
-    required this.accessToken,
-    required this.refreshToken,
-    required this.expiresIn,
-  });
-
-  @override
-  List<Object?> get props => [accessToken, refreshToken, expiresIn];
+@freezed
+abstract class TokenPair with _$TokenPair {
+  const factory TokenPair({
+    required String accessToken,
+    required String refreshToken,
+    required int expiresIn,
+  }) = _TokenPair;
 }
