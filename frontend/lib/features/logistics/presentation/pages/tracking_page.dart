@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ultra_sync/core/theme/app_theme.dart';
 import 'package:ultra_sync/features/logistics/domain/entities/shipment.dart';
@@ -376,6 +377,27 @@ class _OrderHeaderCard extends StatelessWidget {
                   shipment.driverId != null ? 'Driver assigned' : 'Awaiting driver',
                   style: const TextStyle(color: AppColors.onSurface, fontSize: 13),
                 ),
+                if (shipment.driverId != null) ...[
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => context.push('/logistics/chat/${shipment.id}'),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.chat_bubble_outline_rounded,
+                            color: AppColors.primary, size: 14),
+                        SizedBox(width: 5),
+                        Text(
+                          'Chat with Driver',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

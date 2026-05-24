@@ -20,6 +20,8 @@ import 'package:ultra_sync/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:ultra_sync/features/wallet/presentation/pages/qr_receive_page.dart';
 import 'package:ultra_sync/features/wallet/presentation/pages/qr_scan_page.dart';
 import 'package:ultra_sync/features/wallet/presentation/pages/wallet_page.dart';
+import 'package:ultra_sync/features/chat/presentation/bloc/chat_bloc.dart';
+import 'package:ultra_sync/features/chat/presentation/pages/chat_page.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -95,6 +97,13 @@ GoRouter buildRouter(AuthBloc authBloc) {
                     path: 'track/:id',
                     builder: (_, state) =>
                         TrackingPage(shipmentId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: 'chat/:id',
+                    builder: (_, state) => BlocProvider(
+                      create: (_) => getIt<ChatBloc>(),
+                      child: ChatPage(roomId: state.pathParameters['id']!),
+                    ),
                   ),
                 ],
               ),

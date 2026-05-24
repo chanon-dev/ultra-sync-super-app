@@ -4,6 +4,7 @@ use (
 	./api-gateway
 	./pkg
 	./services/auth
+	./services/chat
 	./services/logistics
 	./services/wallet
 )

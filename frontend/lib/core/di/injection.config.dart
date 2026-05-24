@@ -34,6 +34,14 @@ import 'package:ultra_sync/features/auth/domain/usecases/register_usecase.dart'
     as _i876;
 import 'package:ultra_sync/features/auth/presentation/bloc/auth_bloc.dart'
     as _i135;
+import 'package:ultra_sync/features/chat/data/datasources/chat_remote_data_source.dart'
+    as _i538;
+import 'package:ultra_sync/features/chat/data/repositories/chat_repository_impl.dart'
+    as _i373;
+import 'package:ultra_sync/features/chat/domain/repositories/chat_repository.dart'
+    as _i93;
+import 'package:ultra_sync/features/chat/presentation/bloc/chat_bloc.dart'
+    as _i450;
 import 'package:ultra_sync/features/logistics/data/datasources/shipment_remote_data_source.dart'
     as _i180;
 import 'package:ultra_sync/features/logistics/data/repositories/shipment_repository_impl.dart'
@@ -102,6 +110,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i874.BiometricService(gh<_i152.LocalAuthentication>()));
     gh.lazySingleton<_i173.ShipmentRepository>(() =>
         _i243.ShipmentRepositoryImpl(gh<_i180.ShipmentRemoteDataSource>()));
+    gh.lazySingleton<_i538.ChatRemoteDataSource>(
+        () => _i538.ChatRemoteDataSourceImpl(gh<_i513.ApiClient>()));
     gh.lazySingleton<_i906.GetBalanceUseCase>(
         () => _i906.GetBalanceUseCase(gh<_i945.WalletRepository>()));
     gh.lazySingleton<_i493.ListTransactionsUseCase>(
@@ -114,6 +124,10 @@ extension GetItInjectableX on _i174.GetIt {
           logout: gh<_i994.LogoutUseCase>(),
           checkAuth: gh<_i611.CheckAuthUseCase>(),
           biometrics: gh<_i874.BiometricService>(),
+        ));
+    gh.lazySingleton<_i93.ChatRepository>(() => _i373.ChatRepositoryImpl(
+          gh<_i538.ChatRemoteDataSource>(),
+          gh<_i700.TokenStorage>(),
         ));
     gh.lazySingleton<_i995.CreateShipmentUseCase>(
         () => _i995.CreateShipmentUseCase(gh<_i173.ShipmentRepository>()));
@@ -131,6 +145,8 @@ extension GetItInjectableX on _i174.GetIt {
           topUp: gh<_i788.TopUpUseCase>(),
           listTransactions: gh<_i493.ListTransactionsUseCase>(),
         ));
+    gh.factory<_i450.ChatBloc>(
+        () => _i450.ChatBloc(repository: gh<_i93.ChatRepository>()));
     return this;
   }
 }

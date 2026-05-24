@@ -48,6 +48,7 @@ func main() {
 		{Name: "auth",      URL: getEnv("AUTH_SERVICE_URL",      "http://localhost:8081")},
 		{Name: "logistics", URL: getEnv("LOGISTICS_SERVICE_URL", "http://localhost:8082")},
 		{Name: "wallet",    URL: getEnv("WALLET_SERVICE_URL",    "http://localhost:8083")},
+		{Name: "chat",      URL: getEnv("CHAT_SERVICE_URL",      "http://localhost:8084")},
 	}
 
 	rp, err := proxy.New(services, log)
@@ -96,6 +97,10 @@ func main() {
 	walletGroup := protected.Group("/api/v1/wallet")
 	walletGroup.Any("", rp.Forward("wallet"))
 	walletGroup.Any("/*path", rp.Forward("wallet"))
+
+	chatGroup := protected.Group("/api/v1/chat")
+	chatGroup.Any("", rp.Forward("chat"))
+	chatGroup.Any("/*path", rp.Forward("chat"))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", getEnv("PORT", "8080")),

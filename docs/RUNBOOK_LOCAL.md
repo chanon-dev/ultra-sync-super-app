@@ -21,15 +21,15 @@
 
 ### ติดตั้งเครื่องมือที่จำเป็น / Install Required Tools
 
-| Tool | Installed | Required | Status | Install |
-| --- | --- | --- | --- | --- |
-| Docker | 29.1.3 | >= 24 | OK | — |
-| Go | 1.26.2 | >= 1.22 | OK | — |
-| Node.js | 22.16.0 | >= 20 | OK | — |
-| Flutter | — | >= 3.22 | MISSING | see below |
-| k6 | — | >= 0.51 | MISSING | `brew install k6` |
-| protoc | — | >= 26 | optional | `brew install protobuf` |
-| golangci-lint | — | >= 1.58 | optional | `brew install golangci-lint` |
+| Tool          | Installed | Required | Status   | Install                        |
+| ------------- | --------- | -------- | -------- | ------------------------------ |
+| Docker        | 29.1.3    | >= 24    | OK       | —                             |
+| Go            | 1.26.2    | >= 1.22  | OK       | —                             |
+| Node.js       | 22.16.0   | >= 20    | OK       | —                             |
+| Flutter       | —        | >= 3.22  | MISSING  | see below                      |
+| k6            | —        | >= 0.51  | MISSING  | `brew install k6`            |
+| protoc        | —        | >= 26    | optional | `brew install protobuf`      |
+| golangci-lint | —        | >= 1.58  | optional | `brew install golangci-lint` |
 
 ### ติดตั้ง Flutter (macOS ARM) / Install Flutter on macOS ARM
 
@@ -92,15 +92,15 @@ ultra-sync-grafana    running
 
 ### Port ที่ใช้งาน / Exposed Ports
 
-| Service | Port | Description |
-| --- | --- | --- |
-| PostgreSQL | `5432` | Primary database |
-| Redis | `6379` | Cache & Session |
-| Kafka | `9092` | Message Broker |
-| Vault | `8200` | Secrets Management |
-| Jaeger UI | `16686` | Distributed Tracing |
-| Prometheus | `9090` | Metrics |
-| Grafana | `3000` | Dashboard |
+| Service    | Port      | Description         |
+| ---------- | --------- | ------------------- |
+| PostgreSQL | `5432`  | Primary database    |
+| Redis      | `6379`  | Cache & Session     |
+| Kafka      | `9092`  | Message Broker      |
+| Vault      | `8200`  | Secrets Management  |
+| Jaeger UI  | `16686` | Distributed Tracing |
+| Prometheus | `9090`  | Metrics             |
+| Grafana    | `3000`  | Dashboard           |
 
 ### หยุด Infrastructure / Stop Infrastructure
 
@@ -371,11 +371,11 @@ k6 แสดง Threshold summary หลัง Test เสร็จ:
 
 ## 7. Observability Dashboard
 
-| Tool | URL | Login |
-| --- | --- | --- |
-| Jaeger (Tracing) | <http://localhost:16686> | — |
-| Prometheus | <http://localhost:9090> | — |
-| Grafana | <http://localhost:3000> | admin / admin |
+| Tool             | URL                                           | Login         |
+| ---------------- | --------------------------------------------- | ------------- |
+| Jaeger (Tracing) | [http://localhost:16686](http://localhost:16686) | —            |
+| Prometheus       | [http://localhost:9090](http://localhost:9090)   | —            |
+| Grafana          | [http://localhost:3000](http://localhost:3000)   | admin / admin |
 
 ---
 

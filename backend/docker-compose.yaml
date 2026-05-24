@@ -61,6 +61,25 @@ services:
       timeout: 5s
       retries: 10
 
+  chatdb:
+    image: postgres:16-alpine
+    container_name: ultra_chatdb
+    environment:
+      POSTGRES_DB: chatdb
+      POSTGRES_USER: chatuser
+      POSTGRES_PASSWORD: chatpass
+    ports:
+      - "5435:5432"
+    volumes:
+      - chatdb_data:/var/lib/postgresql/data
+      - ./services/chat/internal/adapter/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "chatuser", "-d", "chatdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
   # ============================================================
   # Cache & Session Store
   # ============================================================
@@ -189,5 +208,7 @@ volumes:
   authdb_data:
   logisticsdb_data:
   walletdb_data:
+  chatdb_data:
   redis_data:
   grafana_data:
+
