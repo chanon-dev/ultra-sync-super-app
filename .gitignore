@@ -22,6 +22,42 @@ frontend/pubspec.lock
 frontend/lib/**/*.g.dart
 frontend/lib/**/*.freezed.dart
 
+# Flutter iOS
+frontend/ios/Pods/
+frontend/ios/.symlinks/
+frontend/ios/Flutter/Flutter.framework
+frontend/ios/Flutter/Flutter.podspec
+frontend/ios/Flutter/Generated.xcconfig
+frontend/ios/Flutter/ephemeral/
+frontend/ios/**/*.mode1v3
+frontend/ios/**/*.mode2v3
+frontend/ios/**/*.perspectivev3
+frontend/ios/**/*.xcuserstate
+
+# Flutter macOS
+frontend/macos/Pods/
+frontend/macos/.symlinks/
+frontend/macos/Flutter/GeneratedPluginRegistrant.swift
+frontend/macos/Flutter/ephemeral/
+
+# Flutter Windows
+frontend/windows/flutter/generated_plugin_registrant.cc
+frontend/windows/flutter/generated_plugin_registrant.h
+frontend/windows/flutter/generated_plugins.cmake
+frontend/windows/flutter/ephemeral/
+
+# Flutter Linux
+frontend/linux/flutter/generated_plugin_registrant.cc
+frontend/linux/flutter/generated_plugin_registrant.h
+frontend/linux/flutter/generated_plugins.cmake
+frontend/linux/flutter/ephemeral/
+
+# Flutter Android
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/key.properties
+frontend/android/**/*.keystore
+
 # Secrets / Env
 **/.env
 **/.env.*
@@ -37,6 +73,7 @@ backend/configs/vault*.hcl
 *.swp
 *.swo
 .DS_Store
+*.iml
 
 # Buf generated code
 backend/proto/gen/
