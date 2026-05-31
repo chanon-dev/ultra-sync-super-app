@@ -85,14 +85,19 @@ func main() {
 	// Public routes — no JWT required.
 	router.Any("/api/v1/auth/*path", rp.Forward("auth"))
 
-	// Protected routes — JWT verification applied.
+	// Protected routes — JWT verification + per-user rate limiting applied.
 	protected := router.Group("/")
 	protected.Use(middleware.JWT(authPublicKey))
+	protected.Use(middleware.UserRateLimit(rate.Limit(60), 120)) // 60 req/s per user, burst 120
 
 	// Register both base path and sub-paths so requests without trailing slash are not 307-redirected.
 	shipmentsGroup := protected.Group("/api/v1/shipments")
 	shipmentsGroup.Any("", rp.Forward("logistics"))
 	shipmentsGroup.Any("/*path", rp.Forward("logistics"))
+
+	driversGroup := protected.Group("/api/v1/drivers")
+	driversGroup.Any("", rp.Forward("logistics"))
+	driversGroup.Any("/*path", rp.Forward("logistics"))
 
 	walletGroup := protected.Group("/api/v1/wallet")
 	walletGroup.Any("", rp.Forward("wallet"))
@@ -101,6 +106,10 @@ func main() {
 	chatGroup := protected.Group("/api/v1/chat")
 	chatGroup.Any("", rp.Forward("chat"))
 	chatGroup.Any("/*path", rp.Forward("chat"))
+
+	adminGroup := protected.Group("/api/v1/admin")
+	adminGroup.Any("", rp.Forward("auth"))
+	adminGroup.Any("/*path", rp.Forward("auth"))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", getEnv("PORT", "8080")),

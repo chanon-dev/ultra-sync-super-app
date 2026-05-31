@@ -23,16 +23,17 @@ type GeoPoint struct {
 }
 
 type Shipment struct {
-	ID         uuid.UUID
-	OrderNo    string
-	SenderID   uuid.UUID
-	DriverID   *uuid.UUID
-	Status     ShipmentStatus
-	PickupGeo  GeoPoint
-	DropoffGeo GeoPoint
-	Price      string // DECIMAL(20,4) as string — use shopspring/decimal for arithmetic
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID             uuid.UUID
+	OrderNo        string
+	SenderID       uuid.UUID
+	DriverID       *uuid.UUID
+	Status         ShipmentStatus
+	PickupGeo      GeoPoint
+	DropoffGeo     GeoPoint
+	Price          string // DECIMAL(20,4) as string — use shopspring/decimal for arithmetic
+	IdempotencyKey string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type ShipmentLog struct {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/chanon/ultra-sync/services/logistics/internal/domain/entity"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -30,4 +31,37 @@ func (r *ShipmentLogRepo) Append(ctx context.Context, log *entity.ShipmentLog) e
 		return fmt.Errorf("append shipment log: %w", err)
 	}
 	return nil
+}
+
+func (r *ShipmentLogRepo) GetRoute(ctx context.Context, shipmentID uuid.UUID, limit int, afterID int64) ([]*entity.ShipmentLog, int64, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 100
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT id, shipment_id, status, current_lat, current_lng, speed_kmh, created_at
+		FROM shipment_logs
+		WHERE shipment_id = $1 AND id > $2
+		ORDER BY id ASC
+		LIMIT $3
+	`, shipmentID, afterID, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("query route: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []*entity.ShipmentLog
+	var lastID int64
+	for rows.Next() {
+		l := &entity.ShipmentLog{}
+		if err := rows.Scan(
+			&l.ID, &l.ShipmentID, &l.Status,
+			&l.CurrentGeo.Latitude, &l.CurrentGeo.Longitude,
+			&l.SpeedKmH, &l.CreatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan log: %w", err)
+		}
+		lastID = l.ID
+		logs = append(logs, l)
+	}
+	return logs, lastID, rows.Err()
 }

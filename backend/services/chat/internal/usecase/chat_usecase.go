@@ -3,23 +3,34 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/chanon/ultra-sync/services/chat/internal/domain"
+	"github.com/google/uuid"
 )
 
 type chatUseCase struct {
 	repo      domain.MessageRepository
 	broker    domain.PubSubBroker
 	publisher domain.EventPublisher
+	rooms     domain.RoomRepository
+	storage   domain.FileStorage
 }
 
-func New(repo domain.MessageRepository, broker domain.PubSubBroker, publisher domain.EventPublisher) *chatUseCase {
+func New(
+	repo domain.MessageRepository,
+	broker domain.PubSubBroker,
+	publisher domain.EventPublisher,
+	rooms domain.RoomRepository,
+	storage domain.FileStorage,
+) *chatUseCase {
 	return &chatUseCase{
 		repo:      repo,
 		broker:    broker,
 		publisher: publisher,
+		rooms:     rooms,
+		storage:   storage,
 	}
 }
 
@@ -53,14 +64,11 @@ func (uc *chatUseCase) SendMessage(ctx context.Context, senderID uuid.UUID, send
 		CreatedAt:  time.Now(),
 	}
 
-	// 1. Instantly publish to Redis Pub/Sub for real-time WebSocket delivery
 	if err := uc.broker.PublishMessage(ctx, roomID, msg); err != nil {
 		return nil, err
 	}
 
-	// 2. Publish to Kafka for asynchronous durable logging and auditing
 	if err := uc.publisher.PublishChatEvent(ctx, msg); err != nil {
-		// Fallback to write directly to DB if Kafka is disabled/erroring (dev mode)
 		_ = uc.repo.Save(ctx, msg)
 	}
 
@@ -74,7 +82,72 @@ func (uc *chatUseCase) SubscribeRoom(ctx context.Context, roomID uuid.UUID) (<-c
 	return uc.broker.SubscribeRoom(ctx, roomID)
 }
 
-// SaveMessage is called by the background Kafka consumer worker
+// SaveMessage is called by the background Kafka consumer worker.
 func (uc *chatUseCase) SaveMessage(ctx context.Context, msg *domain.ChatMessage) error {
 	return uc.repo.Save(ctx, msg)
+}
+
+// --- Room Management ---
+
+func (uc *chatUseCase) CreateRoom(ctx context.Context, name string, createdBy uuid.UUID) (*domain.ChatRoom, error) {
+	if name == "" {
+		return nil, errors.New("room name cannot be empty")
+	}
+	if createdBy == uuid.Nil {
+		return nil, errors.New("invalid creator id")
+	}
+	room := &domain.ChatRoom{
+		ID:        uuid.New(),
+		Name:      name,
+		CreatedBy: createdBy,
+		CreatedAt: time.Now(),
+	}
+	if err := uc.rooms.Create(ctx, room); err != nil {
+		return nil, fmt.Errorf("create room: %w", err)
+	}
+	return room, nil
+}
+
+func (uc *chatUseCase) GetRoom(ctx context.Context, id uuid.UUID) (*domain.ChatRoom, error) {
+	if id == uuid.Nil {
+		return nil, errors.New("invalid room id")
+	}
+	room, err := uc.rooms.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("find room: %w", err)
+	}
+	return room, nil
+}
+
+func (uc *chatUseCase) ListRooms(ctx context.Context, userID uuid.UUID, limit int, afterID *uuid.UUID) ([]*domain.ChatRoom, error) {
+	if userID == uuid.Nil {
+		return nil, errors.New("invalid user id")
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	return uc.rooms.List(ctx, userID, limit, afterID)
+}
+
+func (uc *chatUseCase) JoinRoom(ctx context.Context, roomID, userID uuid.UUID) error {
+	if _, err := uc.rooms.FindByID(ctx, roomID); err != nil {
+		return fmt.Errorf("room not found: %w", err)
+	}
+	return uc.rooms.AddMember(ctx, roomID, userID)
+}
+
+// --- File Upload ---
+
+func (uc *chatUseCase) UploadAttachment(ctx context.Context, filename string, data []byte, contentType string) (string, error) {
+	if uc.storage == nil {
+		return "", errors.New("file storage not configured")
+	}
+	if len(data) == 0 {
+		return "", errors.New("file is empty")
+	}
+	url, err := uc.storage.Upload(ctx, filename, data, contentType)
+	if err != nil {
+		return "", fmt.Errorf("upload attachment: %w", err)
+	}
+	return url, nil
 }

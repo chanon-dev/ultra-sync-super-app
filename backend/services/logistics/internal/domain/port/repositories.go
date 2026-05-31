@@ -10,6 +10,7 @@ import (
 type ShipmentRepository interface {
 	Create(ctx context.Context, s *entity.Shipment) error
 	FindByID(ctx context.Context, id uuid.UUID) (*entity.Shipment, error)
+	FindByIdempotencyKey(ctx context.Context, key string) (*entity.Shipment, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, status entity.ShipmentStatus) error
 	AssignDriver(ctx context.Context, shipmentID, driverID uuid.UUID) error
 	List(ctx context.Context, q ListQuery) ([]*entity.Shipment, string, error)
@@ -29,6 +30,18 @@ type LocationCache interface {
 
 type ShipmentLogWriter interface {
 	Append(ctx context.Context, log *entity.ShipmentLog) error
+}
+
+type ShipmentLogReader interface {
+	GetRoute(ctx context.Context, shipmentID uuid.UUID, limit int, afterID int64) ([]*entity.ShipmentLog, int64, error)
+}
+
+type DriverRepository interface {
+	Create(ctx context.Context, d *entity.Driver) error
+	FindByID(ctx context.Context, id uuid.UUID) (*entity.Driver, error)
+	FindByUserID(ctx context.Context, userID uuid.UUID) (*entity.Driver, error)
+	List(ctx context.Context, status string, limit int, after string) ([]*entity.Driver, string, error)
+	UpdateStatus(ctx context.Context, id uuid.UUID, status entity.DriverStatus) error
 }
 
 type EventPublisher interface {
