@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/events"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/httphandler"
+	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/notifier"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/postgres"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/rediscache"
 	"github.com/chanon/ultra-sync/services/logistics/internal/adapter/walletclient"
@@ -98,10 +99,13 @@ func main() {
 	}
 
 	// Wire use case.
-	shipmentUC := usecase.New(shipmentRepo, logRepo, locCache, publisher, walletSaga)
+	pushNotifier := notifier.New(log)
+	driverRepo := postgres.NewDriverRepo(dbPool)
+	driverUC := usecase.NewDriverUseCase(driverRepo)
+	shipmentUC := usecase.New(shipmentRepo, logRepo, logRepo, locCache, publisher, walletSaga, pushNotifier)
 
 	// Wire HTTP handler.
-	handler := httphandler.New(shipmentUC)
+	handler := httphandler.New(shipmentUC, driverUC)
 
 	if env == "production" {
 		gin.SetMode(gin.ReleaseMode)

@@ -9,9 +9,10 @@ import (
 type TransactionType string
 
 const (
-	TxTopUp   TransactionType = "topup"
-	TxPayment TransactionType = "payment"
-	TxPayout  TransactionType = "payout"
+	TxTopUp    TransactionType = "topup"
+	TxPayment  TransactionType = "payment"
+	TxPayout   TransactionType = "payout"
+	TxTransfer TransactionType = "transfer"
 )
 
 type Wallet struct {

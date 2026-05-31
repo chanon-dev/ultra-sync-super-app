@@ -12,15 +12,25 @@ import (
 )
 
 type WalletUseCase struct {
-	wallets port.WalletRepository
-	txs     port.TransactionRepository
+	wallets  port.WalletRepository
+	txs      port.TransactionRepository
+	notifier port.PushNotifier // optional; may be nil
 }
 
 func New(wallets port.WalletRepository, txs port.TransactionRepository) *WalletUseCase {
 	return &WalletUseCase{wallets: wallets, txs: txs}
 }
 
-const maxRetries = 3
+// WithNotifier attaches an optional push notifier.
+func (uc *WalletUseCase) WithNotifier(n port.PushNotifier) *WalletUseCase {
+	uc.notifier = n
+	return uc
+}
+
+const (
+	maxRetries          = 3
+	errInvalidAmountFmt = "invalid amount: %s"
+)
 
 func wrapFindWallet(err error) error { return fmt.Errorf("find wallet: %w", err) }
 
@@ -37,7 +47,7 @@ func (uc *WalletUseCase) TopUp(ctx context.Context, in TopUpInput) (*entity.Tran
 
 	amount, err := decimal.NewFromString(in.Amount)
 	if err != nil || amount.LessThanOrEqual(decimal.Zero) {
-		return nil, fmt.Errorf("invalid amount: %s", in.Amount)
+		return nil, fmt.Errorf(errInvalidAmountFmt, in.Amount)
 	}
 
 	wallet, err := uc.creditWithRetry(ctx, in.UserID, in.Amount)
@@ -58,6 +68,9 @@ func (uc *WalletUseCase) TopUp(ctx context.Context, in TopUpInput) (*entity.Tran
 	if err := uc.txs.Create(ctx, tx); err != nil {
 		return nil, fmt.Errorf("record transaction: %w", err)
 	}
+	if uc.notifier != nil {
+		_ = uc.notifier.NotifyTransactionComplete(ctx, in.UserID, string(entity.TxTopUp), tx.Amount)
+	}
 	return tx, nil
 }
 
@@ -75,7 +88,7 @@ func (uc *WalletUseCase) Pay(ctx context.Context, in PayInput) (*entity.Transact
 
 	amount, err := decimal.NewFromString(in.Amount)
 	if err != nil || amount.LessThanOrEqual(decimal.Zero) {
-		return nil, fmt.Errorf("invalid amount: %s", in.Amount)
+		return nil, fmt.Errorf(errInvalidAmountFmt, in.Amount)
 	}
 
 	wallet, err := uc.wallets.FindByUserID(ctx, in.FromUserID)
@@ -106,6 +119,114 @@ func (uc *WalletUseCase) Pay(ctx context.Context, in PayInput) (*entity.Transact
 	}
 	if err := uc.txs.Create(ctx, tx); err != nil {
 		return nil, fmt.Errorf("record transaction: %w", err)
+	}
+	return tx, nil
+}
+
+// TransferInput carries parameters for a P2P wallet transfer.
+type TransferInput struct {
+	FromUserID     uuid.UUID
+	ToUserID       uuid.UUID
+	Amount         string
+	IdempotencyKey string
+	Note           string
+}
+
+// Transfer moves funds from one user's wallet to another atomically using optimistic locking.
+func (uc *WalletUseCase) Transfer(ctx context.Context, in TransferInput) (*entity.Transaction, error) {
+	// Idempotency check.
+	if existing, err := uc.txs.FindByIdempotencyKey(ctx, in.IdempotencyKey); err == nil {
+		return existing, nil
+	}
+
+	amount, err := decimal.NewFromString(in.Amount)
+	if err != nil || amount.LessThanOrEqual(decimal.Zero) {
+		return nil, fmt.Errorf(errInvalidAmountFmt, in.Amount)
+	}
+
+	// Ensure both wallets exist.
+	if _, err := uc.EnsureWallet(ctx, in.FromUserID); err != nil {
+		return nil, fmt.Errorf("ensure sender wallet: %w", err)
+	}
+	if _, err := uc.EnsureWallet(ctx, in.ToUserID); err != nil {
+		return nil, fmt.Errorf("ensure receiver wallet: %w", err)
+	}
+
+	// Debit sender.
+	senderWallet, err := uc.debitWithRetry(ctx, in.FromUserID, in.Amount)
+	if err != nil {
+		return nil, fmt.Errorf("debit sender: %w", err)
+	}
+
+	// Credit receiver.
+	if _, err = uc.creditWithRetry(ctx, in.ToUserID, in.Amount); err != nil {
+		return nil, fmt.Errorf("credit receiver: %w", err)
+	}
+
+	// Record single transaction from sender's perspective (negative amount = debit).
+	toUserRef := fmt.Sprintf("transfer-to:%s", in.ToUserID.String())
+	senderBalance, _ := decimal.NewFromString(senderWallet.Balance)
+	tx := &entity.Transaction{
+		ID:             uuid.New(),
+		WalletID:       in.FromUserID,
+		Type:           entity.TxTransfer,
+		Amount:         "-" + amount.StringFixed(4),
+		BalanceAfter:   senderBalance.Sub(amount).StringFixed(4),
+		ReferenceID:    &toUserRef,
+		IdempotencyKey: in.IdempotencyKey,
+		CreatedAt:      time.Now(),
+	}
+	if err := uc.txs.Create(ctx, tx); err != nil {
+		return nil, fmt.Errorf("record transfer transaction: %w", err)
+	}
+	if uc.notifier != nil {
+		_ = uc.notifier.NotifyTransactionComplete(ctx, in.FromUserID, string(entity.TxTransfer), tx.Amount)
+	}
+	return tx, nil
+}
+
+// PayoutInput carries parameters for a wallet payout to a bank account.
+type PayoutInput struct {
+	UserID         uuid.UUID
+	Amount         string
+	BankAccount    string // destination bank account reference
+	IdempotencyKey string
+}
+
+// Payout debits the user's wallet and records a payout transaction.
+func (uc *WalletUseCase) Payout(ctx context.Context, in PayoutInput) (*entity.Transaction, error) {
+	// Idempotency check.
+	if existing, err := uc.txs.FindByIdempotencyKey(ctx, in.IdempotencyKey); err == nil {
+		return existing, nil
+	}
+
+	amount, err := decimal.NewFromString(in.Amount)
+	if err != nil || amount.LessThanOrEqual(decimal.Zero) {
+		return nil, fmt.Errorf(errInvalidAmountFmt, in.Amount)
+	}
+
+	wallet, err := uc.debitWithRetry(ctx, in.UserID, in.Amount)
+	if err != nil {
+		return nil, fmt.Errorf("debit for payout: %w", err)
+	}
+
+	bankRef := in.BankAccount
+	walletBalance, _ := decimal.NewFromString(wallet.Balance)
+	tx := &entity.Transaction{
+		ID:             uuid.New(),
+		WalletID:       in.UserID,
+		Type:           entity.TxPayout,
+		Amount:         "-" + amount.StringFixed(4),
+		BalanceAfter:   walletBalance.Sub(amount).StringFixed(4),
+		ReferenceID:    &bankRef,
+		IdempotencyKey: in.IdempotencyKey,
+		CreatedAt:      time.Now(),
+	}
+	if err := uc.txs.Create(ctx, tx); err != nil {
+		return nil, fmt.Errorf("record payout transaction: %w", err)
+	}
+	if uc.notifier != nil {
+		_ = uc.notifier.NotifyTransactionComplete(ctx, in.UserID, string(entity.TxPayout), tx.Amount)
 	}
 	return tx, nil
 }

@@ -26,13 +26,13 @@ func (r *ShipmentRepo) Create(ctx context.Context, s *entity.Shipment) error {
 		INSERT INTO shipments
 			(id, order_no, sender_id, driver_id, status,
 			 pickup_lat, pickup_lng, dropoff_lat, dropoff_lng,
-			 price, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+			 price, idempotency_key, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 	`,
 		s.ID, s.OrderNo, s.SenderID, s.DriverID, s.Status,
 		s.PickupGeo.Latitude, s.PickupGeo.Longitude,
 		s.DropoffGeo.Latitude, s.DropoffGeo.Longitude,
-		s.Price, s.CreatedAt, s.UpdatedAt,
+		s.Price, nullableString(s.IdempotencyKey), s.CreatedAt, s.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("insert shipment: %w", err)
@@ -40,25 +40,49 @@ func (r *ShipmentRepo) Create(ctx context.Context, s *entity.Shipment) error {
 	return nil
 }
 
+func (r *ShipmentRepo) FindByIdempotencyKey(ctx context.Context, key string) (*entity.Shipment, error) {
+	row := r.db.QueryRow(ctx, `
+		SELECT id, order_no, sender_id, driver_id, status,
+		       pickup_lat, pickup_lng, dropoff_lat, dropoff_lng,
+		       price, COALESCE(idempotency_key,''), created_at, updated_at
+		FROM shipments WHERE idempotency_key = $1
+	`, key)
+	return scanShipment(row)
+}
+
 func (r *ShipmentRepo) FindByID(ctx context.Context, id uuid.UUID) (*entity.Shipment, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, order_no, sender_id, driver_id, status,
 		       pickup_lat, pickup_lng, dropoff_lat, dropoff_lng,
-		       price, created_at, updated_at
+		       price, COALESCE(idempotency_key,''), created_at, updated_at
 		FROM shipments WHERE id = $1
 	`, id)
+	return scanShipment(row)
+}
 
+type shipmentScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanShipment(row shipmentScanner) (*entity.Shipment, error) {
 	s := &entity.Shipment{}
 	err := row.Scan(
 		&s.ID, &s.OrderNo, &s.SenderID, &s.DriverID, &s.Status,
 		&s.PickupGeo.Latitude, &s.PickupGeo.Longitude,
 		&s.DropoffGeo.Latitude, &s.DropoffGeo.Longitude,
-		&s.Price, &s.CreatedAt, &s.UpdatedAt,
+		&s.Price, &s.IdempotencyKey, &s.CreatedAt, &s.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("scan shipment: %w", err)
 	}
 	return s, nil
+}
+
+func nullableString(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 func (r *ShipmentRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status entity.ShipmentStatus) error {
@@ -126,7 +150,7 @@ func (r *ShipmentRepo) List(ctx context.Context, q port.ListQuery) ([]*entity.Sh
 	query := fmt.Sprintf(`
 		SELECT id, order_no, sender_id, driver_id, status,
 		       pickup_lat, pickup_lng, dropoff_lat, dropoff_lng,
-		       price, created_at, updated_at
+		       price, COALESCE(idempotency_key,''), created_at, updated_at
 		FROM shipments
 		%s
 		ORDER BY created_at DESC, id DESC
@@ -141,14 +165,9 @@ func (r *ShipmentRepo) List(ctx context.Context, q port.ListQuery) ([]*entity.Sh
 
 	var shipments []*entity.Shipment
 	for rows.Next() {
-		s := &entity.Shipment{}
-		if err := rows.Scan(
-			&s.ID, &s.OrderNo, &s.SenderID, &s.DriverID, &s.Status,
-			&s.PickupGeo.Latitude, &s.PickupGeo.Longitude,
-			&s.DropoffGeo.Latitude, &s.DropoffGeo.Longitude,
-			&s.Price, &s.CreatedAt, &s.UpdatedAt,
-		); err != nil {
-			return nil, "", fmt.Errorf("scan shipment row: %w", err)
+		s, err := scanShipment(rows)
+		if err != nil {
+			return nil, "", err
 		}
 		shipments = append(shipments, s)
 	}

@@ -154,3 +154,43 @@ func (uc *AuthUseCase) Logout(ctx context.Context, refreshToken string) error {
 func (uc *AuthUseCase) Verify(ctx context.Context, accessToken string) (*entity.User, error) {
 	return uc.tokenSigner.Verify(ctx, accessToken)
 }
+
+func (uc *AuthUseCase) GetProfile(ctx context.Context, userID uuid.UUID) (*entity.User, error) {
+	user, err := uc.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("find user: %w", err)
+	}
+	return user, nil
+}
+
+type UpdateProfileInput struct {
+	UserID      uuid.UUID
+	DisplayName string
+	AvatarURL   string
+}
+
+func (uc *AuthUseCase) UpdateProfile(ctx context.Context, in UpdateProfileInput) (*entity.User, error) {
+	user, err := uc.userRepo.FindByID(ctx, in.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("find user: %w", err)
+	}
+	if in.DisplayName != "" {
+		user.DisplayName = &in.DisplayName
+	}
+	if in.AvatarURL != "" {
+		user.AvatarURL = &in.AvatarURL
+	}
+	user.UpdatedAt = time.Now()
+	if err := uc.userRepo.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("update profile: %w", err)
+	}
+	return user, nil
+}
+
+func (uc *AuthUseCase) AdminListUsers(ctx context.Context, status string, limit int, after string) ([]*entity.User, string, error) {
+	return uc.userRepo.ListUsers(ctx, status, limit, after)
+}
+
+func (uc *AuthUseCase) AdminUpdateUserStatus(ctx context.Context, targetUserID uuid.UUID, status entity.UserStatus) error {
+	return uc.userRepo.UpdateStatus(ctx, targetUserID, status)
+}

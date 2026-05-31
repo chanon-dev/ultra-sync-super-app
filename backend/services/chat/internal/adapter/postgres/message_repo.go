@@ -20,9 +20,9 @@ func NewMessageRepo(db *pgxpool.Pool) *MessageRepo {
 
 func (r *MessageRepo) Save(ctx context.Context, msg *domain.ChatMessage) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO chat_messages (id, room_id, sender_id, sender_role, content, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, msg.ID, msg.RoomID, msg.SenderID, msg.SenderRole, msg.Content, msg.CreatedAt)
+		INSERT INTO chat_messages (id, room_id, sender_id, sender_role, content, attachment_url, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, msg.ID, msg.RoomID, msg.SenderID, msg.SenderRole, msg.Content, msg.AttachmentURL, msg.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("save chat message: %w", err)
 	}
@@ -35,7 +35,7 @@ func (r *MessageRepo) GetByRoomID(ctx context.Context, roomID uuid.UUID, limit i
 
 	if beforeID != nil && *beforeID != uuid.Nil {
 		rows, err = r.db.Query(ctx, `
-			SELECT id, room_id, sender_id, sender_role, content, created_at
+			SELECT id, room_id, sender_id, sender_role, content, attachment_url, created_at
 			FROM chat_messages
 			WHERE room_id = $1 AND (
 				created_at < (SELECT created_at FROM chat_messages WHERE id = $3)
@@ -49,7 +49,7 @@ func (r *MessageRepo) GetByRoomID(ctx context.Context, roomID uuid.UUID, limit i
 		`, roomID, limit, *beforeID)
 	} else {
 		rows, err = r.db.Query(ctx, `
-			SELECT id, room_id, sender_id, sender_role, content, created_at
+			SELECT id, room_id, sender_id, sender_role, content, attachment_url, created_at
 			FROM chat_messages
 			WHERE room_id = $1
 			ORDER BY created_at DESC, id DESC
@@ -65,7 +65,7 @@ func (r *MessageRepo) GetByRoomID(ctx context.Context, roomID uuid.UUID, limit i
 	var messages []*domain.ChatMessage
 	for rows.Next() {
 		msg := &domain.ChatMessage{}
-		err := rows.Scan(&msg.ID, &msg.RoomID, &msg.SenderID, &msg.SenderRole, &msg.Content, &msg.CreatedAt)
+		err := rows.Scan(&msg.ID, &msg.RoomID, &msg.SenderID, &msg.SenderRole, &msg.Content, &msg.AttachmentURL, &msg.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("scan chat message: %w", err)
 		}

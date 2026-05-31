@@ -26,6 +26,8 @@ type User struct {
 	ID           uuid.UUID
 	Email        string
 	PasswordHash string
+	DisplayName  *string
+	AvatarURL    *string
 	Role         Role
 	Status       UserStatus
 	MFASecret    *string

@@ -16,6 +16,7 @@ import (
 
 	"github.com/chanon/ultra-sync/pkg/logger"
 	"github.com/chanon/ultra-sync/pkg/tracing"
+	"github.com/chanon/ultra-sync/services/chat/internal/adapter/filestorage"
 	"github.com/chanon/ultra-sync/services/chat/internal/adapter/httphandler"
 	"github.com/chanon/ultra-sync/services/chat/internal/adapter/kafkapub"
 	"github.com/chanon/ultra-sync/services/chat/internal/adapter/postgres"
@@ -78,6 +79,7 @@ func main() {
 
 	// 5. Wire adapters & dependencies
 	messageRepo := postgres.NewMessageRepo(dbPool)
+	roomRepo := postgres.NewRoomRepo(dbPool)
 	redisBroker := redispubsub.New(rdb)
 
 	kafkaPublisher, err := kafkapub.NewPublisher(kafkaBrokers, log)
@@ -86,7 +88,14 @@ func main() {
 	}
 	defer kafkaPublisher.Close() //nolint:errcheck
 
-	chatUC := usecase.New(messageRepo, redisBroker, kafkaPublisher)
+	uploadDir := getEnv("UPLOAD_DIR", "/tmp/chat-uploads")
+	uploadBaseURL := getEnv("UPLOAD_BASE_URL", "http://localhost:8084/uploads")
+	fileStore, err := filestorage.New(uploadDir, uploadBaseURL)
+	if err != nil {
+		log.Fatal("failed to init file storage", zap.Error(err))
+	}
+
+	chatUC := usecase.New(messageRepo, redisBroker, kafkaPublisher, roomRepo, fileStore)
 	handler := httphandler.New(chatUC, log)
 
 	// 6. Start Kafka Asynchronous Background Database Writer

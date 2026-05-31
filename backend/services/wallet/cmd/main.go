@@ -15,6 +15,7 @@ import (
 	"github.com/chanon/ultra-sync/pkg/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"github.com/chanon/ultra-sync/services/wallet/internal/adapter/httphandler"
+	"github.com/chanon/ultra-sync/services/wallet/internal/adapter/notifier"
 	"github.com/chanon/ultra-sync/services/wallet/internal/adapter/postgres"
 	"github.com/chanon/ultra-sync/services/wallet/internal/usecase"
 	"github.com/gin-gonic/gin"
@@ -52,7 +53,7 @@ func main() {
 
 	walletRepo := postgres.NewWalletRepo(dbPool)
 	txRepo := postgres.NewTransactionRepo(dbPool)
-	uc := usecase.New(walletRepo, txRepo)
+	uc := usecase.New(walletRepo, txRepo).WithNotifier(notifier.New(log))
 	handler := httphandler.New(uc, log)
 
 	if env == "production" {
